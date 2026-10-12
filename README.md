@@ -2,6 +2,8 @@
 
 An unofficial 2–5 player Sabobatage implementation with a complete illustrated gallery (27 card types / 110 cards), a shared tabletop, and private phone hands.
 
+The gameplay UI is a functional prototype, not an accepted design. Review the proposed [UX design and three concept studies](UX_DESIGN.md) before implementing its replacement.
+
 ## Local play
 
 Use the pinned Nix shell for development and verification, as in Pantheon. It provides Bun, Node.js, Java, Git, GitHub CLI, Python, and ripgrep.
