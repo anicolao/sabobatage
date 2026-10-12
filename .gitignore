@@ -9,3 +9,5 @@ build/
 !.env.example
 *-debug.log
 .firebase/
+test-results/
+playwright-report/

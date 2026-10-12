@@ -2,7 +2,7 @@
 
 An unofficial 2–5 player Sabobatage implementation with a complete illustrated gallery (27 card types / 110 cards), a shared tabletop, and private phone hands.
 
-The gameplay UI is a functional prototype, not an accepted design. Review the proposed [UX design and three concept studies](UX_DESIGN.md) before implementing its replacement.
+The gameplay UI now follows the reviewed [counter-based UX design](UX_DESIGN.md): a private hand fan, focused phone counter, and public table with fixed, oriented seats. See [implementation captures and review notes](docs/ux/implementation/README.md).
 
 ## Local play
 
@@ -20,6 +20,15 @@ bun run dev:table
 Open the **Network** URL printed by Vite, then `/play/`. Create a table on the shared display; scan its QR code on each phone, enter shop names, and start. Phones and the computer need to reach the Vite, Auth, and Firestore emulator ports (5194, 9295, and 8195) on the same network. Using the Network URL also gives the QR code the correct address. Refreshing a phone restores its Firebase identity and replays the room.
 
 For gallery-only work: `bun run dev`, then http://127.0.0.1:5194/gallery/. Rules are at `/rules/`.
+
+For an immediate visual review without connecting phones, the development server provides deterministic, local-only fixtures:
+
+- `/hand/?demo` — playable private counter; resize between desktop and phone.
+- `/hand/?demo=overflow` — fourteen-card hand with bounded paging.
+- `/hand/?demo=milk-choice` — the victim chooses a Milk to discard.
+- `/table/?demo=reaction` — five public seats with all five Sabobatage targets declared.
+
+These fixtures are labeled `DEMO`, use the real reducer, never write to Firestore, and are excluded from production. Actual multiplayer starts at `/play/`.
 
 ## Game interactions
 
@@ -44,6 +53,8 @@ bun run test
 bun run test:backend # starts isolated emulators; stop dev emulators first
 bun run check
 bun run build
+bun run test:ux # uses installed Chrome, following the local browser setup
+SABOBATAGE_EMULATORS=1 bun run test:ux # also checks independent phones against running emulators
 ```
 
 Tests cover every action, recipe compatibility, reaction timing, flexible Wild ingredients, deterministic full-game simulations, replay/undo, optimistic acknowledgement and conflict handling, concurrent Firestore appends, identity and immutable history rules.

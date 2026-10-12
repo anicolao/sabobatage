@@ -1,8 +1,8 @@
 # Sabobatage UX design
 
-**Proposed for review · October 12, 2026 · Not approved or implemented.**
+**Direction accepted for implementation · October 12, 2026.** The counter-based implementation is now available for visual review; see [actual browser captures and implementation notes](docs/ux/implementation/README.md). The concept paintings below remain composition references, not screenshots.
 
-The existing gameplay screen is a functional prototype, not the visual baseline. This proposal replaces its scrolling player panels with a boba-shop counter that players manipulate directly. The approved gallery illustrations, larger explanatory text, and original **63:88 portrait card proportions** remain the foundation.
+This design replaces the original functional prototype's scrolling player panels with a boba-shop counter that players manipulate directly. The approved gallery illustrations, larger explanatory text, and original **63:88 portrait card proportions** remain the foundation.
 
 ## 1. The table is the interface
 
@@ -228,4 +228,4 @@ Also audit the public projection's DOM, accessibility tree, journal, and animati
 4. Implement every action row above, especially the five-target staging, per-player reactions, target-player discard choices, and steals between focused counters.
 5. Complete public projection, oriented seats, join/reconnect, motion, undo feedback, and victory. Run gameplay, privacy, accessibility, and visual acceptance fixtures.
 
-**Review boundary:** this branch adds the design and concept studies. The current gameplay prototype remains unchanged. The redesigned UI should be built only after review of this document, with actual browser captures as the next visual milestone.
+**Review boundary:** the user approved proceeding with implementation. This branch now includes the counter-based UI and actual browser captures. The next review concerns the implemented screens and interactions; the generated concept paintings are not pixel baselines.
