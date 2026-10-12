@@ -1,0 +1,11 @@
+# Art direction 01: Boba Mischief
+
+Cream paper, espresso ink, pastel category colors, expressive food characters, and subtle print texture. Keep titles and rules in live HTML for accessibility and responsive rendering. Generated with the built-in imagegen tool; artwork is saved in `static/art/boba-contact-sheet.png`.
+
+## Exact generation prompt
+
+Use case: stylized-concept. Asset type: a single illustrated contact sheet for a boba card game art-direction gallery. Create a perfectly regular 4-column by 3-row grid of 12 square illustration tiles, edge to edge, each distinct tile with its own flat pale cream background. No borders, no text, no typography, no labels. Whimsical independent Taiwanese bubble tea shop aesthetic, hand-drawn chunky dark espresso outlines, charming expressive faces, flat pastel gouache colors and subtle screenprint grain, playful editorial illustration rather than 3D. Each subject large, centered, wholly contained in its tile with comfortable margin. Exact reading order: row 1: green tea in a green ceramic teacup with tea leaf and happy face; amber black tea in an orange ceramic teacup with happy face; adorable cream milk carton character with pink cheeks; purple taro root character sliced to reveal lavender flesh. Row 2: three shiny dark tapioca pearl characters joyfully bouncing in a little bowl; yellow pudding character topped with caramel wearing a mischievous smile; a peach character with a green leaf and rosy cheeks; a friendly boba drink in a transparent cup with pink striped straw. Row 3: a sneaky dark tapioca pearl bandit in a black eye mask tipping over a boba cup with pink splash; a stern health inspector clipboard character with glasses and red warning badge; a golden star character wearing sunglasses celebrating with sparkles; a mint green shield character protecting a smiling small boba pearl. Maintain consistent scale, strong silhouettes, same warm hand-drawn style across every tile. This is one cohesive illustrated contact sheet.
+
+## Review
+
+Review silhouette readability, category contrast, card-back cohesion, and the difference between friendly ingredients and mischievous action cards. Browser-local hearts are private review favorites, not approval records. This is the initial direction; approval remains with the user.
