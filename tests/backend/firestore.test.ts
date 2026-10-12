@@ -1,0 +1,24 @@
+import {beforeAll,afterAll,test,expect} from 'bun:test';
+import {initializeTestEnvironment,assertFails,type RulesTestEnvironment} from '@firebase/rules-unit-testing';
+import {readFileSync} from 'node:fs';
+import {doc,setDoc,updateDoc,deleteDoc,getDocs,collection} from 'firebase/firestore';
+import {createRoom,appendIntent} from '../../src/lib/backend/repository';
+import {replay,type Intent} from '../../src/lib/game/events';
+let env:RulesTestEnvironment;
+beforeAll(async()=>{env=await initializeTestEnvironment({projectId:'demo-sabobatage',firestore:{host:'127.0.0.1',port:8195,rules:readFileSync('firestore.rules','utf8')}});});
+afterAll(async()=>{await env.cleanup();});
+test('immutable stream, concurrent joins, deterministic replay and idempotent retry',async()=>{
+ const host=env.authenticatedContext('host').firestore() as any,a=env.authenticatedContext('a').firestore() as any,b=env.authenticatedContext('b').firestore() as any;
+ const code=await createRoom(host,'host');
+ const intent=(id:string,actorUid:string,value:Intent)=>({id,actorUid,intent:value});
+ await Promise.all([appendIntent(a,code,intent('join-a','a',{type:'player/joined',name:'Peach'})),appendIntent(b,code,intent('join-b','b',{type:'player/joined',name:'Taro'}))]);
+ const events=await appendIntent(host,code,intent('start','host',{type:'game/command',command:{type:'start'}}));
+ const first=replay(events).game.players[0].id;const db=first==='a'?a:b;
+ const draw=intent('draw',first,{type:'game/command',command:{type:'draw'}});
+ const next=await appendIntent(db,code,draw,events);const retry=await appendIntent(db,code,draw,events);expect(next.length).toBe(5);expect(replay(retry).game).toEqual(replay(next).game);
+ const aStream=await getDocs(collection(a,'games',code,'events'));const bStream=await getDocs(collection(b,'games',code,'events'));
+ expect(replay(aStream.docs.map(d=>d.data()) as any).game).toEqual(replay(bStream.docs.map(d=>d.data()) as any).game);
+ await assertFails(updateDoc(doc(host,'games',code,'events','1'),{id:'changed'}));await assertFails(deleteDoc(doc(host,'games',code,'events','1')));
+ await assertFails(setDoc(doc(a,'games',code,'events','6'),{...next.at(-1),actorUid:'host',sequence:6}));
+ await assertFails(getDocs(collection(env.unauthenticatedContext().firestore() as any,'games',code,'events')));
+},20000);

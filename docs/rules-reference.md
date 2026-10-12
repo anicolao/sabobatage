@@ -42,11 +42,11 @@ The current file is named third edition but internally marked version 2.1. Its c
 
 Total: 27 card definitions, 110 physical cards. The gallery illustrates all 27 definitions, with visible copy counts totaling 110.
 
-## Before implementing gameplay
+## Gameplay implementation
 
 Official card images and the publisher’s video now verify Sabobatage, 5-Star Review, BOGO, Untrained Employee, Health Inspector, Sugar and Ice, and the complete one-use effect of Bobasurance. Lactose Intolerant and Recycle are now confirmed by the user from their cards. Other ingredient and action effects are rulebook summaries.
 
-Resolve reaction windows, counter chains, target declaration, protection consumption, topping re-entry triggers, wild-ingredient assignment, and the exact victory-check timing. Separate card identity, effect definitions, game state, and UI presentation as the implementation grows. Do not infer engine behavior from art captions or flavor text.
+The deterministic engine covers reaction windows, counter chains, target declaration, one-use protection, and topping re-entry bonuses. Wild ingredients remain flexible without declaring an identity, as specified on manual page 2. Victory is checked after a resolved effect or ingredient placement. POS Down stays in front of its target until the skipped turn, then enters the discard pile. Rule definitions, event replay, sync, and presentation are separate modules.
 
 The base box supports 2–5; the 5–7 recommendation in the manual is relevant to expansion-supported larger groups.
 
