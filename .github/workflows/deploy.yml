@@ -1,0 +1,71 @@
+name: Deploy preview and production
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      preview_pr:
+        description: Pull request number to deploy from this branch
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: pages-publish
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - run: nix develop --command bun install --frozen-lockfile
+      - run: nix develop --command bun run check
+      - run: nix develop --command bun run test
+      - run: nix develop --command bun run test:backend
+      - name: Choose deployment path
+        id: deployment
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.preview_pr }}
+        run: |
+          if [[ "$EVENT_NAME" != "push" ]]; then
+            [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || exit 1
+            echo "base=/sabobatage/pr$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "destination=pr$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=/sabobatage" >> "$GITHUB_OUTPUT"
+            echo "destination=" >> "$GITHUB_OUTPUT"
+          fi
+      - run: nix develop --command bun run build
+        env:
+          PUBLIC_BASE_PATH: ${{ steps.deployment.outputs.base }}
+          VITE_USE_FIREBASE_EMULATORS: 'false'
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build
+          destination_dir: ${{ steps.deployment.outputs.destination }}
+          keep_files: true
+      - name: Link retained PR preview
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.preview_pr }}
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/sabobatage/pr${{ github.event.pull_request.number || inputs.preview_pr }}/play/
+        run: >-
+          nix develop --command gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY"
+          --edit-last --create-if-none
+          --body "Sabobatage preview: [$PREVIEW_URL]($PREVIEW_URL)"
