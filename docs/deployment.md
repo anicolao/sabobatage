@@ -10,9 +10,15 @@ Both environments use the same Firebase project, `sabobatage-preview-anicolao`, 
 
 Configure repository variables `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID` from the Firebase web app configuration. These are public client configuration; no Google credentials are needed in GitHub Actions. Cloud builds explicitly disable local emulators.
 
-Firebase setup requires anonymous sign-in enabled and `anicolao.github.io` authorized in Authentication. Deploy reviewed Firestore rule changes using `nix develop --command bunx firebase deploy --only firestore:rules`. Rules apply to both previews and production, so they must remain compatible with deployed clients.
+Firebase setup declares anonymous sign-in in `firebase.json`, following Pantheon. With an authenticated Firebase CLI, provision it and deploy the reviewed Firestore rules using:
 
-Creating a Firebase project and deploying Firestore does not initialize Authentication. For a new free project, use Authentication → Get started in the Firebase console, then enable Anonymous under Sign-in method. The public `identityPlatform:initializeAuth` API initializes the billing-dependent Identity Platform product; it is not the equivalent of this free Firebase setup flow. `auth/configuration-not-found` means the Authentication configuration is missing, not that game clients need a server or that anonymous sign-in requires billing.
+```sh
+nix develop --command bunx firebase deploy --only auth,firestore:rules --project sabobatage-preview-anicolao
+```
+
+This initializes Authentication and enables the anonymous provider without browser setup or a billing account. Anonymous sign-in does not require adding the GitHub Pages domain to the OAuth authorized-domain list. Rules apply to both previews and production, so they must remain compatible with deployed clients.
+
+Creating a Firebase project and deploying only Firestore does not initialize Authentication. `auth/configuration-not-found` means the Authentication configuration is missing: deploy the `auth` configuration above. Do not substitute the billing-dependent `identityPlatform:initializeAuth` API for the CLI provisioning flow.
 
 Before calling a deployment playable, run `SABOBATAGE_LIVE_URL=https://anicolao.github.io/sabobatage/prN/ bunx playwright test live.spec.ts` inside `nix develop`. It opens a table directly, follows its phone links with independent identities, starts, plays, undoes, and reloads through the real Firebase backend. This intentionally creates a small test room in the shared database.
 

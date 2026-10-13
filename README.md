@@ -44,7 +44,7 @@ Svelte 5 / SvelteKit static frontend. Trusted clients run the same deterministic
 
 The small room metadata document serializes appends, following Pantheon. Unique command IDs prevent duplicate replay, clients rebase concurrent intents, and Firestore rules enforce authorship and append-only history. Private hands are presentation privacy among trusted clients, not cryptographic secrecy. See [architecture notes](docs/architecture.md).
 
-Production uses `bun run build` and any static host, plus your own Firebase configuration and deployed `firestore.rules`. No production Firebase project has been created or changed by this work. Local emulators are for development.
+GitHub Pages hosts production and PR previews. Both use the shared Firebase project `sabobatage-preview-anicolao`, with anonymous Authentication and Firestore. Open the [PR #2 tabletop](https://anicolao.github.io/sabobatage/pr2/table/) to create a room and scan the phone-join QR codes. See [deployment and backend setup](docs/deployment.md). Local emulators are for development.
 
 ## Validation
 
