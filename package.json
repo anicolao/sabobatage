@@ -2,6 +2,7 @@
   "name": "sabobatage",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite dev --host 127.0.0.1 --port 5194 --strictPort",
