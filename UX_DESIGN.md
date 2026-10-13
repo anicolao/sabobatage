@@ -81,13 +81,13 @@ The phone is a complete controller and private hand. Players must be able to fin
 
 Use the space inside device safe areas. As an initial geometry budget for roughly 800 usable vertical pixels: 64 for shop/turn status; 320 for the focused drink and contextual reader; 52 for drink selectors; 240 for the hand; 64 for the action rail; remaining space for separation. Verify actual browser chrome and small-screen behavior before accepting those values.
 
-Show one drink at useful size in the central region. Seven numbered coaster selectors beneath it convey empty, incomplete, complete, protected, and targeted states with symbols as well as color. At 393px, seven 44px targets with six 6px gaps fit within 16px side margins. Selecting a coaster changes focus; it does not play a card until a hand card is armed and the player touches the explicit destination area in the focused drink. This prevents browsing positions from accidentally playing.
+Show two face-up drinks in the central region, with other drinks folded to the sides using Pantheon's supply coverflow geometry. Swipe or tap a folded drink to bring it forward. Seven numbered coaster selectors beneath it keep every position directly reachable, with complete and targeted states shown by symbols as well as color. Selecting a coaster only browses. Both face-up drinks accept touch drag/drop and tap placement; browsing never commits a move.
 
 The hand fan exposes a disjoint hit area of at least 44 × 44px per card. Seven cards must remain individually selectable; the raised card cannot cover its neighbors' hit areas or the action rail. Cards can extend decoratively behind the safe edge, but their hit areas cannot. For temporarily larger hands, use bounded paging in groups that preserve 44px targets, with visible count and next/previous controls. Do not shrink indefinitely or make the page wider.
 
-Selecting a card raises it and shows its name and full effect in the central reader, then offers applicable destinations. A separate, labeled Inspect control keeps reading available without arming a move. Selection is reversible by tapping the card again or using Back. Switching to an opponent uses the same central counter and seven selectors; an owner label remains visible throughout.
+Selecting a card raises it and offers applicable destinations. Keep title labels off the hand faces. A labeled Inspect control, long press, or right-click opens a large portrait card and selectable rules without arming a move. Selection is reversible by tapping the card again or using Back. Switching to an opponent uses the same two-drink workspace and seven selectors; an owner label remains visible throughout.
 
-The bottom rail is always reachable: Undo, remaining plays, and the phase's primary action. Contextual choices replace space within the focused region, not a dialog above the screen. Boba exposes “Draw 1” and “+1 play” before placement; neither choice is silently assumed.
+The bottom rail is always reachable: Undo, remaining plays, and the phase's primary action. Contextual choices stay inline. Boba exposes “Draw 1” and “+1 play” before placement; dropping it first remembers the destination and asks for the bonus before committing. Neither choice is silently assumed.
 
 ### C. Shared table — `/table/`, 3840 × 2160 physical-table baseline
 
@@ -96,6 +96,8 @@ The shared display shows public play: every drink stack, protection, draw and di
 Seats stay fixed for the entire game. With two players use opposite edges; with three use near edge and two far corners; with four use all four edges; with five split the far edge into two seats plus left, right, and near seats. Each seat has seven positions, arranged 4 + 3 when needed. Orient cards and labels toward that seat on a horizontal physical table. A local “Upright display” option makes labels face the audience on a wall display without changing seats or game state.
 
 The central area holds the common piles and action under discussion. Reaction markers appear beside affected shops. Sabobatage shows all five numbered targets together; any connecting lines stay faint and stop at card edges so they do not obscure faces.
+
+With two players, expand both opposing counters across most of the display width and reserve a compact central band for piles and turn status. Do not reuse five-player seat widths and leave most of the screen empty.
 
 During setup, each available seat has a join QR code and short room code. Once seated, the player's shop badge replaces the QR. The host starts from an inline receipt after 2–5 players have joined. No modal setup wizard is needed.
 

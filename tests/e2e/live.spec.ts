@@ -22,7 +22,7 @@ test('independent phones join, play, undo, and restore through Firestore',async(
   const choices=await a.locator('.fan-hit').evaluateAll(els=>els.map(el=>el.getAttribute('aria-label')!));
   const candidate=choices.find(name=>/^Select (Green Tea|Black Tea|Milk|Oat Milk|Taro|Peach|Passion Fruit|Honey Lemon|Wild Ingredient)$/.test(name));
   expect(candidate,'Seeded hand should contain an ingredient without a draw bonus').toBeTruthy();
-  await a.getByRole('button',{name:candidate!,exact:true}).click();await a.getByRole('button',{name:'Place here',exact:true}).filter({visible:true}).click();
+  await a.getByRole('button',{name:candidate!,exact:true}).click();await a.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();
   await expect(a.locator('.game-error')).toHaveCount(0);
   await expect(table.locator('.counter-card')).toHaveCount(1);
   await expect(table.locator('.fan-hit,.near-hand')).toHaveCount(0);

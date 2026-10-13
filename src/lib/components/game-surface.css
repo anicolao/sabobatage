@@ -60,3 +60,83 @@
 .public-surface .surface-reader{left:var(--sx,50%);top:var(--sy,50%);right:auto;bottom:auto;width:clamp(240px,24vw,550px);height:34%;max-height:600px;max-width:none;transform:translate(-50%,-50%) rotate(var(--rotation,0deg))}
 .physical-seat{width:var(--seat-width,29%);height:23%}
 @media(max-width:700px){.action-receipt:has(.receipt-choices){max-height:180px}.play-surface:has(.action-receipt .receipt-choices) .personal-counter{top:305px}}
+
+/* Active play occupies the viewport; touch gestures never pan the document. */
+.game-page.playing,.game-page.shared-table.playing{position:fixed;inset:0;width:100%;max-width:none;margin:0;overscroll-behavior:none}
+.fan-hit,.counter-drinks{touch-action:none;-webkit-touch-callout:none;user-select:none}
+.drag-card{position:fixed;width:125px;transform:translate(-50%,-75%) rotate(-5deg);pointer-events:none;z-index:60;filter:drop-shadow(0 12px 12px #49372f55)}
+.dragging-card .fan-hit.lifted .fan-face{opacity:.35}
+.dragging-card .counter-drink.legal .drink-coaster{background:#d2e0ad99!important}
+.surface-reader.card-zoom{top:65px;bottom:75px;width:min(440px,90%);max-height:none;display:flex;flex-direction:column;align-items:center;gap:12px}
+.surface-reader.card-zoom>header{width:100%;flex-shrink:0}
+.surface-reader.card-zoom .reader-face{width:min(100%,300px);max-width:none;float:none;margin:0 auto;flex-shrink:0}
+.surface-reader.card-zoom p{margin:0;font-size:18px;user-select:text}
+.surface-reader.card-zoom .card-face{user-select:text}
+
+/* Two shops share the full width instead of inheriting five-seat geometry. */
+.public-surface[data-players="2"] .physical-seat{height:35%}
+.public-surface[data-players="2"] .physical-seat>header{margin-bottom:18px;font-size:clamp(16px,1.4vw,38px)}
+.public-surface[data-players="2"] .public-drinks{gap:clamp(12px,1.8vw,56px)}
+.public-surface[data-players="2"] .counter-stack{width:100%;max-width:calc(17vh - 12px);align-self:center}
+.public-surface[data-players="2"] .counter-card,.public-surface[data-players="2"] .counter-card:hover{transform:translateY(calc(var(--layer)*2.6vh - 3vh))}
+.public-surface[data-players="2"] .drink-coaster svg{width:5vh;height:7vh}
+.public-surface[data-players="2"] .drink-coaster small{font-size:clamp(14px,1.1vw,26px)}
+.public-surface[data-players="2"] .surface-piles{top:44%;left:8%;right:8%;height:12%;align-items:center}
+.public-surface[data-players="2"] .surface-piles>button{width:9vh;display:flex;align-items:center;gap:14px;transform:none}
+.public-surface[data-players="2"] .surface-piles>button .card-face{min-width:9vh}
+.public-surface[data-players="2"] .surface-piles>button:last-child{flex-direction:row-reverse}
+.public-surface[data-players="2"] .surface-piles button>span{margin:0;white-space:nowrap;font-size:clamp(14px,1.2vw,28px)}
+.public-surface[data-players="2"] .action-receipt{top:50%;transform:translate(-50%,-50%);width:38%;max-height:13%;padding:8px 16px}
+.public-surface[data-players="2"] .surface-reader.card-zoom{left:50%;top:50%;height:80%;width:min(440px,36%);transform:translate(-50%,-50%) rotate(var(--rotation,0deg))}
+
+@media(max-width:700px){
+ .play-surface:not(.public-surface){display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:30px 54px 60px minmax(0,1fr) 44px 155px 44px;gap:4px;padding:max(8px,env(safe-area-inset-top)) 12px max(8px,env(safe-area-inset-bottom))}
+ .play-surface:not(.public-surface)>*{min-width:0}
+ .play-surface:not(.public-surface)>.surface-top,.play-surface:not(.public-surface)>.shop-coasters,.play-surface:not(.public-surface)>.action-receipt,.play-surface:not(.public-surface)>.personal-counter,.play-surface:not(.public-surface)>.selection-ticket,.play-surface:not(.public-surface)>.near-hand,.play-surface:not(.public-surface)>.surface-rail{position:relative;inset:auto;transform:none;width:100%;height:auto;min-height:0;max-height:none;margin:0}
+ .play-surface:not(.public-surface)>.surface-top{grid-row:1;font-size:10px;gap:6px}
+ .play-surface:not(.public-surface)>.shop-coasters{grid-row:2;gap:5px}
+ .play-surface:not(.public-surface)>.shop-coasters>button{min-height:0;padding:4px}
+ .play-surface:not(.public-surface)>.action-receipt{grid-row:3;width:calc(100% - 124px);justify-self:center;padding:4px 6px;align-content:center;overflow:auto}
+ .play-surface:not(.public-surface)>.action-receipt>strong{font-size:13px;line-height:1.2}
+ .play-surface:not(.public-surface)>.action-receipt>small{font-size:9px}
+ .play-surface:not(.public-surface)>.action-receipt>span{font-size:10px}
+ .play-surface:not(.public-surface)>.surface-piles{top:100px;left:12px;right:12px;height:60px;align-items:center}
+ .play-surface:not(.public-surface)>.surface-piles>button{width:56px;transform:none}
+ .play-surface:not(.public-surface)>.surface-piles .card-face,.play-surface:not(.public-surface)>.surface-piles .empty-pile{display:none}
+ .play-surface:not(.public-surface)>.surface-piles button>span{margin:0;white-space:normal;min-height:52px;display:grid;place-content:center;font-size:12px;border:1px solid #a48864;border-radius:9px}
+ .play-surface:not(.public-surface)>.personal-counter{grid-row:4;padding-bottom:44px;pointer-events:auto}
+ .personal-counter .counter-owner{height:32px;min-height:32px;font-size:16px}
+ .personal-counter .counter-drinks{display:block;position:relative;width:100%;margin:24px 0 0;min-height:0;perspective:1400px;isolation:isolate}
+ .personal-counter .counter-drink{display:flex;position:absolute;left:50%;top:0;width:var(--drink-width);height:100%;max-height:none;transform:translateX(-50%) var(--drink-pose);z-index:var(--drink-z);transition:transform .25s;justify-content:start}
+ .personal-counter .counter-drink:not(.face-up){opacity:.6}
+ .personal-counter .counter-drink:not(.face-up) .drink-coaster>span{display:none}
+ .personal-counter .drink-coaster{bottom:32px!important}
+ .personal-counter .drink-coaster>span{display:block;top:-25px;font-size:13px;line-height:24px;min-width:24px}
+ .personal-counter .counter-drink:not(.face-up) .counter-card,.personal-counter .counter-drink:not(.face-up) .counter-protection{pointer-events:none}
+ .personal-counter .counter-drink:not(.face-up) .counter-place{display:none}
+ .play-surface .personal-counter .counter-stack{display:grid;position:absolute;top:8px;width:100%;gap:0;align-content:start}
+ .play-surface .personal-counter .counter-card,.play-surface .personal-counter .counter-card:hover,.play-surface .personal-counter .counter-card:focus-visible{transform:translateY(calc(var(--layer)*22px));width:100%;flex-basis:auto}
+ .play-surface .personal-counter .counter-place{bottom:0;min-height:32px;font-size:12px!important;padding:4px!important}
+ .personal-counter .counter-protection{bottom:34px}
+ .personal-counter .drink-selectors{bottom:0;gap:4px}
+ .personal-counter .drink-selectors>button{width:44px;min-width:44px;height:44px;min-height:44px;font-size:17px}
+ .play-surface:not(.public-surface)>.selection-ticket{grid-row:5;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 6px;overflow:visible;z-index:9}
+ .selection-ticket>div:first-child{gap:5px;min-width:0;font-size:12px;flex:1}
+ .selection-ticket>div:first-child>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:115px}
+ .selection-ticket>div:first-child>button{padding:4px 6px;font-size:12px}
+ .selection-ticket>p,.selection-ticket .selection-count{display:none}
+ .selection-ticket .receipt-choices{gap:4px}.selection-ticket .receipt-choices button,.selection-ticket>button{font-size:12px;min-height:34px;padding:4px 6px}
+ .play-surface:not(.public-surface)>.near-hand{grid-row:6;z-index:10}
+ .near-hand .hand-meta{top:0;font-size:11px;height:22px}.near-hand .hand-meta button{min-height:22px;padding:0 9px}
+ .near-hand .hand-fan{padding-top:24px}.near-hand .fan-hit{height:130px}
+ .near-hand .fan-face{width:95px;top:calc(var(--rise)*.3)}
+ .near-hand .fan-hit:hover .fan-face,.near-hand .fan-hit:focus-visible .fan-face,.near-hand .fan-hit.lifted .fan-face{top:-8px}
+ .play-surface:not(.public-surface)>.surface-rail{grid-row:7;gap:4px;z-index:15}
+ .surface-rail>button{min-height:40px;font-size:13px;padding:6px 9px}.surface-rail>span{font-size:12px;padding:6px}
+ .play-surface:not(.public-surface)>.surface-reader{top:42px;bottom:58px;left:12px;right:12px;width:auto;max-height:none;z-index:30}
+ .play-surface:not(.public-surface)>.surface-reader.card-zoom .reader-face{width:min(100%,calc((100dvh - 260px)*.715));max-width:300px}
+ .surface-reader.card-zoom p{font-size:18px}
+ .play-surface:not(.public-surface):has(.action-receipt .receipt-choices){grid-template-rows:30px 54px 108px minmax(0,1fr) 44px 155px 44px}
+ .play-surface:not(.public-surface):has(.action-receipt .receipt-choices)>.action-receipt{width:calc(100% - 124px)}
+ .action-receipt .receipt-choices{flex-wrap:wrap;gap:3px}.action-receipt .receipt-choices button{min-height:30px;font-size:11px;padding:3px}
+}

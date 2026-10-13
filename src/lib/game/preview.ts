@@ -4,7 +4,7 @@ import { addPlayer, applyCommand, emptyGame, project, type Command, type Game, t
 export function previewSession(scenario:string,table:boolean,update:(view:View)=>void){
  let game=emptyGame(20261012),revision=0;
  const history:Game[]=[];
- for(const [i,name] of ['Peach Please','Taro & Co.','Milk Moon','Tea Time','Pearl Club'].entries())addPlayer(game,`preview-${i}`,name);
+ for(const [i,name] of ['Peach Please','Taro & Co.','Milk Moon','Tea Time','Pearl Club'].slice(0,scenario==='two-player'?2:5).entries())addPlayer(game,`preview-${i}`,name);
  const inventory=cards.flatMap(c=>Array.from({length:c.copies},(_,i)=>({uid:`${c.id}-${i}`,type:c.id})));
  const take=(type:string):Piece=>inventory.splice(inventory.findIndex(c=>c.type===type),1)[0];
  for(const [i,p] of game.players.entries()){p.drinks[0].cards=['black-tea','milk'].map(take);p.drinks[1].cards=['green-tea',i===4?'passion-fruit':'peach','boba'].map(take);p.drinks[2].cards=(i===4?['black-tea','oat-milk']:['taro','oat-milk']).map(take);}

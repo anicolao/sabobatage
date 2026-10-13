@@ -7,7 +7,7 @@ test.beforeEach(async({page})=>{page.on('pageerror',error=>{throw error;});});
 test('phone places Boba immediately, selects its bonus, and undoes',async({page})=>{
  await demo(page);await select(page,'Boba');
  await page.getByRole('button',{name:'+1 play',exact:true}).click();
- await page.getByRole('button',{name:'Place here',exact:true}).filter({visible:true}).click();
+ await page.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();
  await expect(page.getByRole('button',{name:'Boba in Peach Please drink 1',exact:true})).toBeVisible();
  await expect(page.locator('.surface-rail')).toContainText('3 plays left');
  await page.getByRole('button',{name:'↶ Undo',exact:true}).click();
@@ -47,7 +47,7 @@ test('Sugar and Ice carries the ingredient back to your counter',async({page})=>
  await ingredient(page,'Black Tea in Taro & Co. drink 1');
  await expect(page.locator('.counter-owner')).toContainText('Your counter');
  await page.getByRole('button',{name:'View drink 4',exact:true}).click();
- await page.getByRole('button',{name:'Place here',exact:true}).filter({visible:true}).click();
+ await page.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();
  await expect(page.locator('.action-receipt')).toContainText('Sugar and Ice');
  await expect(page.getByRole('button',{name:'Pass',exact:true})).toBeVisible();
 });
@@ -59,14 +59,14 @@ test('Tea Party stages two teas before choosing separate destinations',async({pa
   await ingredient(page,`Black Tea in ${shop} drink 1`);
  }
  await page.getByRole('button',{name:'Use 2 teas →',exact:true}).click();
- for(const slot of [4,5]){await page.getByRole('button',{name:`View drink ${slot}`,exact:true}).click();await page.getByRole('button',{name:'Place here',exact:true}).filter({visible:true}).click();}
+ for(const slot of [4,5]){await page.getByRole('button',{name:`View drink ${slot}`,exact:true}).click();await page.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();}
  await expect(page.locator('.action-receipt')).toContainText('2 ingredients chosen');
  await expect(page.getByRole('button',{name:'Pass',exact:true})).toBeVisible();
 });
 
 test('Straw protects the selected completed drink without a dialog',async({page})=>{
  await demo(page);await select(page,'Straw');await page.getByRole('button',{name:'View drink 2, complete',exact:true}).click();
- await page.getByRole('button',{name:'Place here',exact:true}).filter({visible:true}).click();
+ await page.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();
  await expect(page.getByRole('button',{name:'Inspect Straw',exact:true})).toBeVisible();
  await expect(page.locator('dialog')).toHaveCount(0);
 });
@@ -119,4 +119,15 @@ test('public table has 35 positions, stable seats, all five targets, and no hand
  await page.screenshot({path:info.outputPath('table.png')});
  await page.getByRole('button',{name:'Seated display',exact:true}).click();
  expect(await page.locator('.physical-seat').evaluateAll(els=>els.map(el=>({x:(el as HTMLElement).style.getPropertyValue('--sx'),y:(el as HTMLElement).style.getPropertyValue('--sy')})))).toEqual(before);
+});
+
+test('two-player table uses the display width with large cards and separate seat regions',async({page},info)=>{
+ await page.setViewportSize({width:2048,height:1184});await page.goto('/table/?demo=two-player');
+ await expect(page.locator('.physical-seat')).toHaveCount(2);
+ const seats=await page.locator('.physical-seat').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {width:r.width,top:r.top,bottom:r.bottom};}));
+ expect(seats[0].width).toBeGreaterThan(1700);expect(seats[1].bottom).toBeLessThan(seats[0].top);
+ const cards=await page.locator('.counter-card').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {width:r.width,top:r.top,bottom:r.bottom,left:r.left,right:r.right};}));
+ for(const r of cards){expect(r.width).toBeGreaterThan(170);expect(r.top).toBeGreaterThan(55);expect(r.bottom).toBeLessThan(1120);expect(r.left).toBeGreaterThan(0);expect(r.right).toBeLessThan(2048);}
+ await expect(page.locator('.near-hand,.fan-hit')).toHaveCount(0);
+ await page.screenshot({path:info.outputPath('table-two-player.png')});
 });

@@ -32,7 +32,7 @@ These fixtures are labeled `DEMO`, use the real reducer, never write to Firestor
 
 ## Game interactions
 
-- Tap a hand card, then the drink or opponent to act on. Ingredient cards also support desktop drag-and-drop into drink slots. Choices stay inline; there are no modal dialogs or confirmation prompts.
+- Tap a hand card, then its destination, or drag it with a mouse or finger onto a drink. Phones show two face-up drinks; swipe the coverflow or use the numbered selectors to browse. Hold or right-click a card to zoom, or select it and tap Inspect. Choices stay inline; there are no modal dialogs or confirmation prompts.
 - Sabobatage declares five ingredients before opening reactions. Each player passes or plays Customer Loyalty on their phone. Lactose Intolerant and Untrained Employee let the targeted player choose their own discard.
 - Tea Party: choose one or two tea cards, then their destination slots. Recycle: choose from the discard tray. Wild ingredients fit compatible recipes automatically and remain flexible.
 - Undo appends to the event stream. As in Pantheon, draws/reveals and ending a turn clear undo history. The host can undo the latest eligible move; a player can undo their own.
