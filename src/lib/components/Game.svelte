@@ -1,7 +1,7 @@
 <script lang="ts">
  import { onMount } from 'svelte';
  import { base } from '$app/paths';
- import { goto } from '$app/navigation';
+ import { goto, replaceState } from '$app/navigation';
  import QRCode from 'qrcode';
  import { connectFirebase } from '$lib/backend/firebase';
  import { createRoom } from '$lib/backend/repository';
@@ -22,13 +22,23 @@
  let selected=$state<Piece|null>(null), targets=$state<Target[]>([]), destinations=$state<number[]>([]), wildAs=$state('green-tea'), bonus=$state<'draw'|'play'|null>(null), discarding=$state(false), showDiscard=$state(false), detail=$state<Piece|null>(null);
  let qr=$state(''), joinUrl=$state(''), address=$state(''), target=$state(5), localRevision=-1;
  let preview: {command:(cmd:Command|{type:'undo'})=>void}|undefined;
- let syncPending=$state(0); let session:GameSession|undefined; let uid='';
+ let syncPending=$state(0); let session:GameSession|undefined; let uid=''; let disposed=false;
  let active=$derived(view?.players[view.active]);let me=$derived(view?.players.find(p=>p.id===view?.you));
  let myTurn=$derived(!!me&&active?.id===me.id);let choosing=$derived(view?.phase==='choice'&&view.pending?.victim===view.you);
  let selectedDef=$derived(selected?definitions[selected.type]:null);
  let prompt=$derived(choosing?`Choose ${view?.pending?.choice==='milk'?'one Milk card':'an incomplete drink'} to discard.`:selected?selected.type==='5-star-review'?'Tap the draw pile to draw two.':selected.type==='recycle'?'Tap a card in the discard pile.':selected.type==='sabobatage'?`Choose five ingredients. ${targets.length}/5 selected; reactions start after the fifth.`:selected.type==='sugar-and-ice'||selected.type==='tea-party'?targets.length?`Choose your destination drink${targets.length>1?'s, in order':''}. ${destinations.length}/${targets.length} placed.`:selected.type==='tea-party'?'Choose one or two tea cards, then tap your destination drinks.':'Tap an opponent’s ingredient, then your destination drink.':['bogo','pos-down','lactose-intolerant','untrained-employee'].includes(selected.type)?'Tap the shop you want to target.':selected.type==='health-inspector'?'Tap a topping or flavor to target its type.':'Tap one of your drink slots to place this card.':view?.phase==='reaction'?'All targets are chosen. Play Customer Loyalty or pass.':myTurn?view?.phase==='draw'?'Tap the deck to draw for your turn.':`${view?.plays} plays left. Tap a hand card to play it.`:`${active?.name??'The next shop'} is taking a turn.`);
  function accept(next:View){const before=localRevision>=0&&next.revision===localRevision+1?captureCards():null;if(next.revision!==localRevision){if(localRevision>=0){selected=null;targets=[];destinations=[];}localRevision=next.revision;view=next;}else view=next;if(before)void animateCards(before);}
- async function create(){busy=true;error='';try{const {db,uid}=await connectFirebase();const code=await createRoom(db,uid);await goto(`${base}/table/?room=${code}`);}catch(e){error=(e as Error).message;}finally{busy=false;}}
+ async function connectTable(fresh=false){
+  if(busy)return;busy=true;error='';
+  try{
+   const services=await connectFirebase();if(disposed)return;
+   if(fresh||!room){const code=await createRoom(services.db,services.uid);if(disposed)return;room=code;view=null;localRevision=-1;replaceState(`${base}/table/?room=${room}`,{});}
+   uid=services.uid;session?.stop();await updateQR();
+   if(disposed)return;
+   session=new GameSession(firestoreTransport(services.db,room),uid,mode==='table',state=>{accept(state.view);connected=state.connected;syncPending=state.pending;if(state.error)error=state.error;},localStorage,`sabobatage:events:v1:${room}:${uid}`);session.start();
+  }catch(e){error=(e as Error).message;}finally{busy=false;}
+ }
+ async function create(){if(mode==='table')await connectTable(true);else await goto(`${base}/table/`);}
  function join(){error='';try{session?.send({type:'player/joined',name});}catch(e){error=(e as Error).message;}}
  function command(cmd:Command|{type:'undo'}){cmd=$state.snapshot(cmd);if(!view||(!session&&!preview))return;error='';try{if(preview)preview.command(cmd);else if(cmd.type==='undo')session!.undo();else session!.send({type:'game/command',command:cmd});selected=null;targets=[];destinations=[];discarding=cmd.type==='discard'&&(view?.hand.length??0)>7;inspecting=false;showDiscard=false;placingTea=false;}catch(e){error=(e as Error).message;}}
  function cancel(){selected=null;targets=[];destinations=[];discarding=false;placingTea=false;bonus=null;}
@@ -77,18 +87,39 @@
  }
  function fit(slot:number){if(!selected||!me)return false;if(selected.type==='straw'||selected.type==='bobasurance')return !!me.drinks[slot].cards.length&&(selected.type!=='straw'||complete(me.drinks[slot]))&&!me.drinks[slot].protection.some(c=>c.type===selected?.type||c.type==='straw');const c=targets.length?view?.players.find(p=>p.id===targets[destinations.length]?.player)?.drinks[targets[destinations.length]?.slot]?.cards.find(c=>c.uid===targets[destinations.length]?.card):selected;if(!c)return false;const probe=me.drinks.map(d=>({cards:d.cards.map(c=>({...c})),protection:d.protection.map(c=>({...c}))}));destinations.forEach((dest,i)=>{const t=targets[i];const previous=view?.players.find(p=>p.id===t.player)?.drinks[t.slot]?.cards.find(c=>c.uid===t.card);if(dest>=0&&previous)probe[dest].cards.push(previous);});return canPlace(probe[slot],{...c,...(c.type==='wild-ingredient'?{as:wildAs}:{})});}
  async function updateQR(){if(!room||!address)return;joinUrl=`${location.protocol}//${address}${base}/hand/?room=${room}`;qr=await QRCode.toDataURL(joinUrl,{width:220,margin:2,color:{dark:'#583c32',light:'#fffaf0'}});}
- onMount(()=>{mounted=true;const params=new URLSearchParams(location.search);room=(params.get('room')??'').toUpperCase();address=location.host;void updateQR();let disposed=false;
+ onMount(()=>{mounted=true;const params=new URLSearchParams(location.search);room=(params.get('room')??'').toUpperCase();address=location.host;void updateQR();
   if(import.meta.env.DEV&&params.has('demo')){room='DEMO';connected=true;void import('$lib/game/preview').then(({previewSession})=>{if(!disposed)preview=previewSession(params.get('demo')||'resting',mode==='table',accept);});return()=>{disposed=true;};}
 
-  if(mode!=='lobby'&&room)void connectFirebase().then(services=>{if(disposed)return;uid=services.uid;session=new GameSession(firestoreTransport(services.db,room),uid,mode==='table',state=>{accept(state.view);connected=state.connected;syncPending=state.pending;if(state.error)error=state.error;},localStorage,`sabobatage:events:v1:${room}:${uid}`);session.start();}).catch(e=>error=e.message);
+  if(mode==='table'||mode==='hand'&&room)void connectTable();
   return()=>{disposed=true;session?.stop();};
  });
 </script>
 <svelte:head><title>{mode==='table'?'Shared table':mode==='hand'?'Your hand':'Play'} · Sabobatage</title></svelte:head>
 <svelte:window onkeydown={e=>{if(e.key==='Escape'){if(inspecting||showDiscard||journal){inspecting=false;showDiscard=false;journal=false;}else cancel();}}}/>
-<main id="main" class="game-page" class:playing={!!view&&view.phase!=='lobby'} class:shared-table={mode==='table'}>
+<main id="main" class="game-page" class:playing={!!view&&view.phase!=='lobby'} class:shared-table={mode==='table'} class:gathering-table={mode==='table'&&(!view||view.phase==='lobby')}>
  {#if mode==='lobby'}
   <section class="game-welcome"><p class="eyebrow">OPEN YOUR BOBA SHOP</p><h1>One table.<br/><em>A few secret recipes.</em></h1><p>Gather 2–5 players. Keep the shared table on a big screen and your cards on your phone.</p><button class="primary-button" disabled={!mounted||busy} onclick={create}>Create a table ↗</button><form onsubmit={e=>{e.preventDefault();void goto(`${base}/hand/?room=${room.trim().toUpperCase()}`);}}><label>Room code<input aria-label="Room code" bind:value={room} maxlength="6" placeholder="ABC234" required/></label><button class="game-button" disabled={!mounted}>Join on this device</button></form><p class="small">Private hands, instant moves, and undo when someone makes a slip.</p></section>
+ {:else if mode==='table'&&(!view||view.phase==='lobby')}
+  <section class="table-gathering" aria-label="Tabletop setup">
+   <div class="table-center table-lobby">
+    <p class="eyebrow">ONE TABLE · 2–5 SHOPS</p><h1>sa<b>boba</b>tage</h1>
+    {#if view}
+     <p>Scan with your phone.<br/>Your recipes stay in your hand.</p>
+     <strong class="table-room">{room}</strong>
+     <ul aria-label="Joined shops">{#each view.players as p}<li>● {p.name}</li>{/each}</ul>
+     <p aria-live="polite">{view.players.length} of 5 shops joined</p>
+     {#if view.host}<label>Drinks to win<select bind:value={target}><option value={3}>3 · Quick game</option><option value={4}>4 drinks</option><option value={5}>5 · Full game</option></select></label><button class="primary-button" disabled={view.players.length<2||busy||!connected} onclick={()=>command({type:'start',target})}>Open the shops →</button>{:else}<p>Waiting for the host to open the shops.</p>{/if}
+     {#if import.meta.env.DEV}<label class="table-network">Phone address<input aria-label="Address for phones" bind:value={address} onchange={updateQR}/></label>{/if}
+    {:else if error}<p>We couldn’t open this table.</p><button class="primary-button" disabled={busy} onclick={()=>connectTable()}>Try again</button>
+    {:else}<p role="status">Opening your table…</p>{/if}
+   </div>
+   {#each ['South','West','North','East'] as side,i}
+    <aside class="table-phone-join" style={`--edge:${i}`} aria-label={`${side} phone join`}>
+     {#if view&&qr}<a href={joinUrl} target="_blank" rel="noreferrer"><img src={qr} alt={`Scan to join room ${room} from the ${side.toLowerCase()} side`}/><strong>Scan to join</strong></a><span>Your cards. Your phone.</span>
+     {:else}<span class="qr-placeholder" aria-hidden="true">▧</span><strong>Bring your phone</strong>{/if}
+    </aside>
+   {/each}
+  </section>
  {:else if !room}<section class="game-welcome"><h1>Find your table</h1><a href={base + '/play/'} class="primary-button">Create or join a table</a></section>
  {:else}
   {#if !view||view.phase==='lobby'}<header class="game-heading"><div><p class="eyebrow">{mode==='table'?'SHARED TABLE':'PRIVATE HAND'} · {room}</p><h1>{me?.name??'The boba shop'}</h1></div><span class:offline={!connected} class="connection">{syncPending?`◌ Syncing ${syncPending} move${syncPending===1?'':'s'}`:connected?'● Synced':'○ Connecting…'}</span><a href={base + '/play/'}>Other tables</a></header>{/if}

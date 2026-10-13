@@ -10,4 +10,4 @@ async function connect(){const env=import.meta.env;if(!env.VITE_FIREBASE_API_KEY
  await auth.authStateReady();if(!auth.currentUser)await signInAnonymously(auth);return {auth,db,uid:auth.currentUser!.uid};
 }
 let connection:ReturnType<typeof connect>|undefined;
-export function connectFirebase(){return connection??=connect();}
+export function connectFirebase(){return connection??=connect().catch(error=>{connection=undefined;throw error;});}

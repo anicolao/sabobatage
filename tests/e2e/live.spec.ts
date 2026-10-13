@@ -7,9 +7,15 @@ test('independent phones join, play, undo, and restore through Firestore',async(
  const table=await host.newPage(),a=await one.newPage(),b=await two.newPage();
  for(const page of [table,a,b])page.on('pageerror',error=>{throw error;});
  try{
-  await table.goto(route('play/'));await table.getByRole('button',{name:'Create a table ↗',exact:true}).click();await expect(table).toHaveURL(/room=/);
+  await table.goto(route('table/'));await expect(table).toHaveURL(/\/table\/\?room=/,{timeout:20000});
+  await expect(table.locator('.table-phone-join img')).toHaveCount(4);
   const room=new URL(table.url()).searchParams.get('room');
-  for(const [page,name] of [[a,'Peach Live'],[b,'Taro Live']] as const){await page.goto(route(`hand/?room=${room}`));await page.getByRole('textbox',{name:'Your shop name'}).fill(name);await page.getByRole('button',{name:'Join table',exact:true}).click();await expect(page.locator('.table-lobby')).toContainText(name);}
+  const phoneLink=await table.locator('.table-phone-join a').first().getAttribute('href');
+  expect(phoneLink).toBe(route(`hand/?room=${room}`));
+  await table.reload();await expect(table.locator('.table-room')).toHaveText(room!);
+  for(const [page,name] of [[a,'Peach Live'],[b,'Taro Live']] as const){await page.goto(phoneLink!);await page.getByRole('textbox',{name:'Your shop name'}).fill(name);await page.getByRole('button',{name:'Join table',exact:true}).click();await expect(page.locator('.table-lobby')).toContainText(name);}
+  await expect(table.getByLabel('Joined shops')).toContainText('Peach Live');
+  await expect(table.getByLabel('Joined shops')).toContainText('Taro Live');
   await table.getByRole('button',{name:'Open the shops →',exact:true}).click();
   await a.getByRole('button',{name:'Draw 2 cards',exact:true}).click();
   await expect(a.locator('.hand-meta')).toContainText('7');

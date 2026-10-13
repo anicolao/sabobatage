@@ -1,4 +1,16 @@
 /* Game surfaces are spatial viewports. The gallery keeps its own layout. */
+.game-page.gathering-table{position:fixed;inset:0;max-width:none;padding:0;height:100dvh;min-height:0;overflow:hidden;container-type:size}
+.table-gathering{position:relative;width:100%;height:100%;color:#49372f}
+.table-center.table-lobby{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1cqmin;width:40cqmin;max-height:53cqh;margin:0;padding:2cqmin;text-align:center;background:#fff6e4eb;border:1px solid #ac8c5760;border-radius:2cqmin;box-shadow:0 1cqmin 4cqmin #65432920;overflow:auto;font-size:1.7cqmin}
+.table-center h1{font:600 5cqmin Fraunces,serif;letter-spacing:-.2cqmin;margin:0}.table-center h1 b{color:#a25b62}.table-center p{margin:0;font-size:1.7cqmin;line-height:1.4}.table-center .eyebrow{font-size:1.3cqmin}.table-center .table-room{font-size:2.5cqmin;letter-spacing:.5cqmin}.table-center ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.6cqmin 1.5cqmin}.table-center li{font-size:1.7cqmin}.table-center label{display:flex;align-items:center;gap:1cqmin;font-size:1.5cqmin}.table-center select,.table-center input{max-width:20cqmin;padding:.6cqmin;font:inherit}.table-center .primary-button{font-size:1.8cqmin;padding:1.3cqmin 2cqmin;min-height:44px}.table-center .table-network{font-size:1.2cqmin}
+.table-phone-join{position:absolute;left:50%;top:50%;width:20cqmin;display:flex;flex-direction:column;align-items:center;gap:.7cqmin;text-align:center;padding:1.5cqmin;background:#fff9ec;border:1px solid #ac8c5760;border-radius:1.4cqmin;box-shadow:0 .6cqmin 2cqmin #65432930;transform:translate(-50%,-50%) rotate(calc(var(--edge)*90deg)) translateY(34cqmin);font-size:1.6cqmin}
+.table-phone-join a{display:flex;flex-direction:column;align-items:center;gap:.7cqmin;text-decoration:none}.table-phone-join img{width:15cqmin;height:15cqmin}.table-phone-join strong{font-size:2cqmin}.qr-placeholder{display:grid;place-content:center;width:15cqmin;height:15cqmin;font-size:9cqmin;color:#a4886480}
+.game-page.shared-table.gathering-table{max-width:none;padding:0;margin:0}
+.table-center.table-lobby{max-height:40cqmin;gap:.65cqmin}
+.table-center.table-lobby p,.table-center.table-lobby ul,.table-center.table-lobby label{margin:0}
+.table-center.table-lobby li{padding:0;font-size:1.7cqmin}
+.table-center.table-lobby label{display:flex;gap:1cqmin;font-size:1.5cqmin;max-width:none}
+.table-center.table-lobby input,.table-center.table-lobby select{padding:.6cqmin}
 .game-page{min-height:100dvh;background:#e6e4cc url(/art/shop-counter.png) center/cover fixed}
 .game-page.playing{max-width:none;padding:0;height:100dvh;min-height:0;overflow:hidden}
 .play-surface{position:relative;isolation:isolate;width:100%;height:100%;overflow:hidden;color:#49372f;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
