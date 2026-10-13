@@ -24,6 +24,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      pages: write
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
@@ -59,6 +60,10 @@ jobs:
           publish_dir: build
           destination_dir: ${{ steps.deployment.outputs.destination }}
           keep_files: true
+      - name: Build published Pages branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: nix develop --command gh api "repos/$GITHUB_REPOSITORY/pages/builds" --method POST
       - name: Link retained PR preview
         if: github.event_name != 'push'
         env:

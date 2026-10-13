@@ -13,6 +13,7 @@
  import { definitions, complete, score, canPlace, type Piece, type View, type Target, type Command } from '$lib/game/engine';
  import { cards } from '$lib/game/cards';
  let { mode='lobby' }: {mode?:'lobby'|'table'|'hand'}=$props();
+ let mounted=$state(false);
  let room=$state(''), name=$state(''), view=$state<View|null>(null), error=$state(''), busy=$state(false), connected=$state(false);
  let focusPlayer=$state(''), focusSlot=$state(0), handPage=$state(0), inspecting=$state(false), journal=$state(false), upright=$state(false), placingTea=$state(false);
  let counter=$derived(view?.players.find(p=>p.id===(focusPlayer||view?.you))??view?.players[0]);
@@ -76,7 +77,7 @@
  }
  function fit(slot:number){if(!selected||!me)return false;if(selected.type==='straw'||selected.type==='bobasurance')return !!me.drinks[slot].cards.length&&(selected.type!=='straw'||complete(me.drinks[slot]))&&!me.drinks[slot].protection.some(c=>c.type===selected?.type||c.type==='straw');const c=targets.length?view?.players.find(p=>p.id===targets[destinations.length]?.player)?.drinks[targets[destinations.length]?.slot]?.cards.find(c=>c.uid===targets[destinations.length]?.card):selected;if(!c)return false;const probe=me.drinks.map(d=>({cards:d.cards.map(c=>({...c})),protection:d.protection.map(c=>({...c}))}));destinations.forEach((dest,i)=>{const t=targets[i];const previous=view?.players.find(p=>p.id===t.player)?.drinks[t.slot]?.cards.find(c=>c.uid===t.card);if(dest>=0&&previous)probe[dest].cards.push(previous);});return canPlace(probe[slot],{...c,...(c.type==='wild-ingredient'?{as:wildAs}:{})});}
  async function updateQR(){if(!room||!address)return;joinUrl=`${location.protocol}//${address}${base}/hand/?room=${room}`;qr=await QRCode.toDataURL(joinUrl,{width:220,margin:2,color:{dark:'#583c32',light:'#fffaf0'}});}
- onMount(()=>{const params=new URLSearchParams(location.search);room=(params.get('room')??'').toUpperCase();address=location.host;void updateQR();let disposed=false;
+ onMount(()=>{mounted=true;const params=new URLSearchParams(location.search);room=(params.get('room')??'').toUpperCase();address=location.host;void updateQR();let disposed=false;
   if(import.meta.env.DEV&&params.has('demo')){room='DEMO';connected=true;void import('$lib/game/preview').then(({previewSession})=>{if(!disposed)preview=previewSession(params.get('demo')||'resting',mode==='table',accept);});return()=>{disposed=true;};}
 
   if(mode!=='lobby'&&room)void connectFirebase().then(services=>{if(disposed)return;uid=services.uid;session=new GameSession(firestoreTransport(services.db,room),uid,mode==='table',state=>{accept(state.view);connected=state.connected;syncPending=state.pending;if(state.error)error=state.error;},localStorage,`sabobatage:events:v1:${room}:${uid}`);session.start();}).catch(e=>error=e.message);
@@ -87,7 +88,7 @@
 <svelte:window onkeydown={e=>{if(e.key==='Escape'){if(inspecting||showDiscard||journal){inspecting=false;showDiscard=false;journal=false;}else cancel();}}}/>
 <main id="main" class="game-page" class:playing={!!view&&view.phase!=='lobby'} class:shared-table={mode==='table'}>
  {#if mode==='lobby'}
-  <section class="game-welcome"><p class="eyebrow">OPEN YOUR BOBA SHOP</p><h1>One table.<br/><em>A few secret recipes.</em></h1><p>Gather 2–5 players. Keep the shared table on a big screen and your cards on your phone.</p><button class="primary-button" disabled={busy} onclick={create}>Create a table ↗</button><form onsubmit={e=>{e.preventDefault();void goto(`${base}/hand/?room=${room.trim().toUpperCase()}`);}}><label>Room code<input aria-label="Room code" bind:value={room} maxlength="6" placeholder="ABC234" required/></label><button class="game-button">Join on this device</button></form><p class="small">Private hands, instant moves, and undo when someone makes a slip.</p></section>
+  <section class="game-welcome"><p class="eyebrow">OPEN YOUR BOBA SHOP</p><h1>One table.<br/><em>A few secret recipes.</em></h1><p>Gather 2–5 players. Keep the shared table on a big screen and your cards on your phone.</p><button class="primary-button" disabled={!mounted||busy} onclick={create}>Create a table ↗</button><form onsubmit={e=>{e.preventDefault();void goto(`${base}/hand/?room=${room.trim().toUpperCase()}`);}}><label>Room code<input aria-label="Room code" bind:value={room} maxlength="6" placeholder="ABC234" required/></label><button class="game-button" disabled={!mounted}>Join on this device</button></form><p class="small">Private hands, instant moves, and undo when someone makes a slip.</p></section>
  {:else if !room}<section class="game-welcome"><h1>Find your table</h1><a href={base + '/play/'} class="primary-button">Create or join a table</a></section>
  {:else}
   {#if !view||view.phase==='lobby'}<header class="game-heading"><div><p class="eyebrow">{mode==='table'?'SHARED TABLE':'PRIVATE HAND'} · {room}</p><h1>{me?.name??'The boba shop'}</h1></div><span class:offline={!connected} class="connection">{syncPending?`◌ Syncing ${syncPending} move${syncPending===1?'':'s'}`:connected?'● Synced':'○ Connecting…'}</span><a href={base + '/play/'}>Other tables</a></header>{/if}

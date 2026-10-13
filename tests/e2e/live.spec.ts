@@ -1,13 +1,15 @@
 import {test,expect} from '@playwright/test';
 test('independent phones join, play, undo, and restore through Firestore',async({browser})=>{
- test.skip(!process.env.SABOBATAGE_EMULATORS,'Requires local Auth and Firestore emulators.');
+ test.skip(!process.env.SABOBATAGE_EMULATORS&&!process.env.SABOBATAGE_LIVE_URL,'Requires local emulators or an explicit live deployment URL.');
+ const deployment=process.env.SABOBATAGE_LIVE_URL||'http://127.0.0.1:5194/';
+ const route=(path:string)=>new URL(path,deployment.endsWith('/')?deployment:deployment+'/').href;
  const host=await browser.newContext({viewport:{width:1440,height:1000}}),one=await browser.newContext({viewport:{width:393,height:852}}),two=await browser.newContext({viewport:{width:393,height:852}});
  const table=await host.newPage(),a=await one.newPage(),b=await two.newPage();
  for(const page of [table,a,b])page.on('pageerror',error=>{throw error;});
  try{
-  await table.goto('/play/');await table.getByRole('button',{name:'Create a table ↗',exact:true}).click();await expect(table).toHaveURL(/room=/);
+  await table.goto(route('play/'));await table.getByRole('button',{name:'Create a table ↗',exact:true}).click();await expect(table).toHaveURL(/room=/);
   const room=new URL(table.url()).searchParams.get('room');
-  for(const [page,name] of [[a,'Peach Live'],[b,'Taro Live']] as const){await page.goto(`/hand/?room=${room}`);await page.getByRole('textbox',{name:'Your shop name'}).fill(name);await page.getByRole('button',{name:'Join table',exact:true}).click();await expect(page.locator('.table-lobby')).toContainText(name);}
+  for(const [page,name] of [[a,'Peach Live'],[b,'Taro Live']] as const){await page.goto(route(`hand/?room=${room}`));await page.getByRole('textbox',{name:'Your shop name'}).fill(name);await page.getByRole('button',{name:'Join table',exact:true}).click();await expect(page.locator('.table-lobby')).toContainText(name);}
   await table.getByRole('button',{name:'Open the shops →',exact:true}).click();
   await a.getByRole('button',{name:'Draw 2 cards',exact:true}).click();
   await expect(a.locator('.hand-meta')).toContainText('7');
