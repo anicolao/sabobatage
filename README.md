@@ -61,6 +61,9 @@ Tests cover every action, recipe compatibility, reaction timing, flexible Wild i
 
 ## Art and rules
 
+The launcher icon is served at `/art/sabobatage-launcher.png` (prefixed by `PUBLIC_BASE_PATH` when deployed under a subpath). Set the TTLauncher application's Icon field to the absolute HTTPS URL of this asset on the deployed Sabobatage host. SvelteKit copies `static/art/sabobatage-launcher.png` into the static build; no separate image host is needed. The square badge matches the Boba Mischief illustrations and follows Pantheon's launcher composition. Its built-in imagegen prompt is recorded in [launcher icon provenance](docs/launcher-icon.json).
+
 Original boba-shop illustrations use two generated sprite sheets with live HTML rules text. The gallery retains the original 63:88 proportions, larger explanatory text, filters, favorites, card backs, and an inline detail panel.
 
 The current third-edition manual (internally version 2.1) provides the inventory. User-confirmed card text supplies Lactose Intolerant and Recycle. See [rules references](docs/rules-reference.md) and [art direction](docs/art-direction.md). Pantheon and RoboRally informed the interaction and synchronization patterns.
+
