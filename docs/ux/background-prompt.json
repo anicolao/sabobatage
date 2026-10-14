@@ -1,0 +1,5 @@
+{
+  "tool": "image_gen.imagegen",
+  "asset": "static/art/shop-counter.png",
+  "prompt": "Use case: stylized-concept. Asset: decorative background for a playable Sabobatage card game, landscape 1536x1024. Paint a warm inviting boba shop counter in soft gouache with paper texture, cream and mint terrazzo, espresso walnut wood edges, restrained peach and taro accents. Camera high above the counter, almost top down, very shallow perspective. The entire central 85% of the canvas is EMPTY quiet pale mint/cream terrazzo working surface, evenly lit, subtle sparse tiny flecks. Only around the extreme perimeter: thin walnut wood border, small leafy plant cropped in upper left, tiny glass jars and folded tea towel cropped at upper right, a very small peach-colored cup cropped at lower right. Warm ambient shop glow, tactile cozy tabletop, sophisticated illustration matching cheerful flat gouache ingredient cards. No cards, no card slots, no symbols, no text, no signage, no UI, no characters, no hands, no large props, no perspective horizon. This is a background layer behind live HTML cards; negative space and readability essential."
+}

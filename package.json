@@ -1,1 +1,37 @@
-{"name":"sabobatage","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite dev --host 127.0.0.1 --port 5194 --strictPort","build":"vite build","preview":"vite preview --host 127.0.0.1 --port 4194 --strictPort","check":"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"},"devDependencies":{"@sveltejs/adapter-static":"3.0.10","@sveltejs/kit":"2.69.3","@sveltejs/vite-plugin-svelte":"7.2.0","svelte":"5.56.5","svelte-check":"4.7.2","typescript":"5.9.3","vite":"8.1.4"}}
+{
+  "name": "sabobatage",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host 127.0.0.1 --port 5194 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4194 --strictPort",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "dev:table": "vite dev --host 0.0.0.0 --port 5194 --strictPort",
+    "test": "bun test tests/unit",
+    "test:ux": "playwright test",
+    "emulators": "firebase emulators:start --project demo-sabobatage --only auth,firestore",
+    "test:backend": "firebase emulators:exec --project demo-sabobatage --only auth,firestore \"bun test tests/backend\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.1",
+    "@playwright/test": "1.61.1",
+    "@sveltejs/adapter-static": "3.0.10",
+    "@sveltejs/kit": "2.69.3",
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "@types/bun": "^1.4.3",
+    "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
+    "firebase-tools": "15.25.0",
+    "svelte": "5.56.5",
+    "svelte-check": "4.7.2",
+    "typescript": "5.9.3",
+    "vite": "8.1.4"
+  },
+  "dependencies": {
+    "firebase": "12.16.0",
+    "qrcode": "^1.5.4"
+  }
+}

@@ -1,0 +1,55 @@
+import {describe,test,expect} from 'bun:test';
+import {addPlayer,emptyGame,applyCommand,validDrink,complete,project,canPlace,type Game,type Piece,type Command,type Target} from '../../src/lib/game/engine';
+import {cards,deckSize,pendingEffects} from '../../src/lib/game/cards';
+let serial=0;const piece=(type:string,as?:string):Piece=>({uid:`test-${serial++}`,type,...(as?{as}:{})});
+function setup(){const g=emptyGame(42);addPlayer(g,'a','A');addPlayer(g,'b','B');return applyCommand(g,'host',{type:'start'});}
+function scenario(type:string){const g=setup();g.phase='play';g.plays=3;g.players[0].hand=[piece(type)];g.players[1].hand=[];return g;}
+function action(g:Game,extra:Partial<Command>={}){return applyCommand(g,'a',{type:'play',card:g.players[0].hand[0].uid,...extra});}
+function pass(g:Game){for(const p of g.players)g=applyCommand(g,p.id,{type:'pass'});return g;}
+function put(g:Game,p:number,slot:number,...types:string[]):Target[]{return types.map(type=>{const c=piece(type);g.players[p].drinks[slot].cards.push(c);return {player:g.players[p].id,slot,card:c.uid};});}
+describe('inventory and recipes',()=>{
+ test('all 110 cards / 27 definitions complete',()=>{expect(cards.length).toBe(27);expect(deckSize).toBe(110);expect(pendingEffects).toBe(0);const g=setup();expect(g.deck.length).toBe(100);expect(new Set([...g.deck,...g.players.flatMap(p=>p.hand)].map(c=>c.uid)).size).toBe(110);});
+ test('recipes allow partial order, enforce compatibility and Taro',()=>{const d=(...types:string[])=>({cards:types.map(t=>piece(t)),protection:[]});expect(complete(d('boba','milk','black-tea'))).toBe(true);expect(complete(d('oat-milk','taro'))).toBe(true);expect(validDrink(d('taro','green-tea').cards)).toBe(false);expect(validDrink(d('peach','pudding').cards)).toBe(false);expect(validDrink(d('milk','aloe').cards)).toBe(false);expect(validDrink(d('green-tea','black-tea').cards)).toBe(false);expect(canPlace(d('milk','boba','green-tea'),piece('red-bean'))).toBe(false);expect(complete({cards:[piece('wild-ingredient'),piece('taro')],protection:[]})).toBe(true);expect(complete({cards:[piece('wild-ingredient','milk'),piece('taro')],protection:[]})).toBe(true);});
+ test('no deck or other hands in table/phone projection',()=>{const g=setup();for(const id of ['host',undefined,'a','forged']){const v=project(g,id);expect('deck' in v).toBe(false);expect('rng' in v).toBe(false);expect(v.players.some(p=>'hand' in p)).toBe(false);expect(v.hand.length).toBe(id==='a'?5:0);}});
+});
+describe('turns',()=>{
+ test('draw exactly once, reject wrong turn without mutation',()=>{const g=setup();const before=JSON.stringify(g);expect(()=>applyCommand(g,'b',{type:'draw'})).toThrow();expect(JSON.stringify(g)).toBe(before);const next=applyCommand(g,'a',{type:'draw'});expect(next.players[0].hand.length).toBe(7);expect(next.plays).toBe(3);expect(()=>applyCommand(next,'a',{type:'draw'})).toThrow();});
+ test('two completed drinks give three cards',()=>{let g=setup();put(g,0,0,'taro','milk');put(g,0,1,'taro','oat-milk');g=applyCommand(g,'a',{type:'draw'});expect(g.players[0].hand.length).toBe(8);expect(()=>applyCommand(g,'a',{type:'end'})).toThrow('seven');g=applyCommand(g,'a',{type:'discard',card:g.players[0].hand[0].uid});g=applyCommand(g,'a',{type:'end'});expect(g.active).toBe(1);});
+ test('topping bonuses and wild does not copy bonus',()=>{let g=scenario('boba');g=action(g,{slot:0,bonus:'play'});expect(g.plays).toBe(3);g=scenario('pudding');g=action(g,{slot:0});expect(g.players[0].hand.length).toBe(1);g=scenario('wild-ingredient');g=action(g,{slot:0,wildAs:'boba'});expect(g.players[0].hand.length).toBe(0);});
+ test('victory after placing the final ingredient',()=>{let g=scenario('milk');g.target=3;put(g,0,0,'milk','taro');put(g,0,1,'oat-milk','taro');put(g,0,2,'taro');g=action(g,{slot:2});expect(g.phase).toBe('won');expect(g.winner).toBe('a');});
+ test('draw reshuffles discards, preserving identities',()=>{let g=setup();g.discard=g.deck.splice(0);const before=g.discard.length;g=applyCommand(g,'a',{type:'draw'});expect(g.discard.length).toBe(0);expect(g.deck.length).toBe(before-2);});
+});
+describe('all action effects and reactions',()=>{
+ test('5-Star Review draws two',()=>{let g=scenario('5-star-review');g=action(g);expect(g.players[0].hand.length).toBe(2);expect(g.plays).toBe(2);});
+ test('Recycle returns any discarded card to hand including Sabobatage',()=>{let g=scenario('recycle');const c=piece('sabobatage');g.discard=[c];g=action(g,{targets:[{player:'',slot:0,card:c.uid}]});expect(g.players[0].hand).toEqual([c]);expect(g.discard[0].type).toBe('recycle');});
+ test('Sabobatage must select five before reactions, no partial mutation',()=>{let g=scenario('sabobatage');const targets=[...put(g,1,0,'milk','boba','green-tea'),...put(g,1,1,'oat-milk','taro')];expect(()=>action(g,{targets:targets.slice(0,4)})).toThrow('five');expect(g.players[0].hand.length).toBe(1);g=action(g,{targets});expect(g.phase).toBe('reaction');expect(g.players[1].drinks[0].cards.length).toBe(3);g=pass(g);expect(g.players[1].drinks.flatMap(d=>d.cards).length).toBe(0);});
+ test('Loyalty protects only its player; counter-chain resets passes',()=>{let g=scenario('sabobatage');const targets=[...put(g,0,0,'milk','taro'),...put(g,1,0,'green-tea','milk','boba')];const loyalty=piece('customer-loyalty');g.players[1].hand=[loyalty];g=action(g,{targets});g=applyCommand(g,'a',{type:'pass'});g=applyCommand(g,'b',{type:'counter',card:loyalty.uid});expect(g.pending!.passed).toEqual([]);g=pass(g);expect(g.players[0].drinks[0].cards.length).toBe(0);expect(g.players[1].drinks[0].cards.length).toBe(3);});
+ test('BOGO blocked by Loyalty gives neither benefit; counter restores both',()=>{let g=scenario('bogo');const counter=piece('customer-loyalty'),recounter=piece('customer-loyalty');g.players[0].hand.push(recounter);g.players[1].hand=[counter,piece('milk')];g=action(g,{victim:'b'});g=applyCommand(g,'b',{type:'counter',card:counter.uid});const blocked=pass(g);expect(blocked.players[0].hand.length).toBe(1);g=applyCommand(g,'a',{type:'counter',card:recounter.uid,counterLast:true});g=pass(g);expect(g.players[0].hand.length).toBe(2);expect(g.players[1].hand.length).toBe(0);});
+ test('Health Inspector discards all of actual type, excludes Wild',()=>{let g=scenario('health-inspector');const t=put(g,1,0,'milk')[0];put(g,1,1,'milk');g.players[1].drinks[2].cards=[piece('wild-ingredient','milk')];g=pass(action(g,{targets:[t]}));expect(g.players[1].drinks[0].cards.length).toBe(0);expect(g.players[1].drinks[1].cards.length).toBe(0);expect(g.players[1].drinks[2].cards.length).toBe(1);});
+ test('Lactose Intolerant waits for victim to pick one Milk',()=>{let g=scenario('lactose-intolerant');put(g,1,0,'milk');const t=put(g,1,1,'milk')[0];put(g,1,2,'oat-milk');g=pass(action(g,{victim:'b'}));expect(g.phase).toBe('choice');expect(()=>applyCommand(g,'a',{type:'choose',targets:[t]})).toThrow();g=applyCommand(g,'b',{type:'choose',targets:[t]});expect(g.players[1].drinks[0].cards.length).toBe(1);expect(g.players[1].drinks[1].cards.length).toBe(0);expect(g.players[1].drinks[2].cards.length).toBe(1);});
+ test('Untrained Employee leaves selection to opponent',()=>{let g=scenario('untrained-employee');put(g,1,0,'milk','boba');put(g,1,1,'milk','taro');g=pass(action(g,{victim:'b'}));expect(()=>applyCommand(g,'b',{type:'choose',targets:[{player:'b',slot:1}]})).toThrow();g=applyCommand(g,'b',{type:'choose',targets:[{player:'b',slot:0}]});expect(g.players[1].drinks[0].cards.length).toBe(0);expect(g.players[1].drinks[1].cards.length).toBe(2);});
+ test('Sugar and Ice places stolen ingredient and triggers topping bonus',()=>{let g=scenario('sugar-and-ice');const targets=put(g,1,0,'boba');g=pass(action(g,{targets,destinations:[3],bonus:'play'}));expect(g.players[0].drinks[3].cards[0].type).toBe('boba');expect(g.players[1].drinks[0].cards.length).toBe(0);expect(g.plays).toBe(3);});
+ test('Tea Party steals up to two tea cards to chosen slots',()=>{let g=scenario('tea-party');const targets=[...put(g,1,0,'green-tea'),...put(g,1,1,'black-tea')];g=pass(action(g,{targets,destinations:[2,3]}));expect(g.players[0].drinks[2].cards[0].type).toBe('green-tea');expect(g.players[0].drinks[3].cards[0].type).toBe('black-tea');});
+ test('POS Down skips next turn only',()=>{let g=scenario('pos-down');g=pass(action(g,{victim:'b'}));g=applyCommand(g,'a',{type:'end'});expect(g.active).toBe(0);expect(g.players[1].skip).toBe(0);g=applyCommand(g,'a',{type:'draw'});g=applyCommand(g,'a',{type:'end'});expect(g.active).toBe(1);});
+ test('Straw only protects completed drinks; Bobasurance consumes once per action',()=>{let g=scenario('straw');put(g,0,0,'milk');expect(()=>action(g,{slot:0})).toThrow();put(g,0,0,'taro');g=action(g,{slot:0});expect(g.players[0].drinks[0].protection.length).toBe(1);g=scenario('sabobatage');const targets=[...put(g,1,0,'milk','boba','green-tea'),...put(g,1,1,'milk','taro')];g.players[1].drinks[0].protection=[piece('bobasurance')];g=pass(action(g,{targets}));expect(g.players[1].drinks[0].cards.length).toBe(3);expect(g.players[1].drinks[0].protection.length).toBe(0);expect(g.players[1].drinks[1].cards.length).toBe(0);});
+});
+
+test('seeded full games reach victory without losing or duplicating cards',()=>{
+ for(let seed=1;seed<=30;seed++){
+  let g=emptyGame(seed);addPlayer(g,'a','A');addPlayer(g,'b','B');g=applyCommand(g,'host',{type:'start',target:3});
+  for(let turn=0;turn<300&&g.phase!=='won';turn++){
+   const id=g.players[g.active].id;g=applyCommand(g,id,{type:'draw'});
+   for(let move=0;move<12&&g.phase==='play'&&g.plays>0;move++){
+    const p=g.players[g.active];let next:Game|undefined;
+    for(const c of p.hand){if(c.type==='5-star-review'){next=applyCommand(g,id,{type:'play',card:c.uid});break;}
+     if(c.type==='recycle'&&g.discard.length){next=applyCommand(g,id,{type:'play',card:c.uid,targets:[{player:'',slot:0,card:g.discard.at(-1)!.uid}]});break;}
+     for(let slot=0;slot<7;slot++){const options=c.type==='wild-ingredient'?['milk','taro','green-tea','boba','peach']:[''];for(const as of options){if(canPlace(p.drinks[slot],{...c,...(as?{as}:{})})){next=applyCommand(g,id,{type:'play',card:c.uid,slot,wildAs:as,bonus:'draw'});break;}}if(next)break;}if(next)break;
+    }if(!next)break;g=next;
+    const all=[...g.deck,...g.discard,...g.players.flatMap(p=>[...p.hand,...p.delayed,...p.drinks.flatMap(d=>[...d.cards,...d.protection])])];expect(all.length).toBe(110);expect(new Set(all.map(c=>c.uid)).size).toBe(110);
+   }
+   if(g.phase==='won')break;while(g.players[g.active].hand.length>7)g=applyCommand(g,id,{type:'discard',card:g.players[g.active].hand[0].uid});g=applyCommand(g,id,{type:'end'});
+  }expect(g.phase).toBe('won');
+ }
+});
+
+test('wild ingredient changes its role automatically after theft',()=>{const wild=piece('wild-ingredient');const d={cards:[piece('green-tea'),wild,piece('boba')],protection:[]};expect(complete(d)).toBe(true);d.cards.pop();expect(canPlace(d,piece('milk'))).toBe(true);expect(complete({...d,cards:[...d.cards,piece('milk')]})).toBe(true);});

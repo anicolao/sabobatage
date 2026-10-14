@@ -1,31 +1,71 @@
-# Sabobatage — art direction prototype
+# Sabobatage
 
-A local Svelte 5 / SvelteKit / TypeScript gallery for reviewing an original boba-shop art direction before gameplay implementation.
+An unofficial 2–5 player Sabobatage implementation with a complete illustrated gallery (27 card types / 110 cards), a shared tabletop, and private phone hands.
 
-## Run
+The gameplay UI now follows the reviewed [counter-based UX design](UX_DESIGN.md): a private hand fan, focused phone counter, and public table with fixed, oriented seats. See [implementation captures and review notes](docs/ux/implementation/README.md).
+
+## Local play
+
+Open `/play/` to choose **Play online** or **Play around a table**. For online PvP, enter your shop name and choose **Create web game**, then share the invitation link or room code. The host plays from that same browser and starts once friends have joined; every browser shows only its own hand. No shared display or phones are required. `/table/` retains the public tabletop and QR phone-join flow.
+
+Use the pinned Nix shell for development and verification, as in Pantheon. It provides Bun, Node.js, Java, Git, GitHub CLI, Python, and ripgrep.
 
 ```sh
-bun install
-bun run dev
+nix develop
+bun install --frozen-lockfile
+cp .env.example .env.local
+bun run emulators
+# In a second terminal:
+bun run dev:table
 ```
 
-Open http://127.0.0.1:5194. `/gallery/` shows the gallery; `/rules/` contains the sourced rules summary.
+Open the **Network** URL printed by Vite, then `/play/`. Create a table on the shared display; scan its QR code on each phone, enter shop names, and start. Phones and the computer need to reach the Vite, Auth, and Firestore emulator ports (5194, 9295, and 8195) on the same network. Using the Network URL also gives the QR code the correct address. Refreshing a phone restores its Firebase identity and replays the room.
+
+For gallery-only work: `bun run dev`, then http://127.0.0.1:5194/gallery/. Rules are at `/rules/`.
+
+For an immediate visual review without connecting phones, the development server provides deterministic, local-only fixtures:
+
+- `/hand/?demo` — playable private counter; resize between desktop and phone.
+- `/hand/?demo=overflow` — fourteen-card hand with bounded paging.
+- `/hand/?demo=milk-choice` — the victim chooses a Milk to discard.
+- `/table/?demo=reaction` — five public seats with all five Sabobatage targets declared.
+
+These fixtures are labeled `DEMO`, use the real reducer, never write to Firestore, and are excluded from production. Actual multiplayer starts at `/play/`.
+
+## Game interactions
+
+- Tap a hand card, then its destination, or drag it with a mouse or finger onto a drink. Phones show two face-up drinks; swipe the coverflow or use the numbered selectors to browse. Hold or right-click a card to zoom, or select it and tap Inspect. Choices stay inline; there are no modal dialogs or confirmation prompts.
+- Sabobatage declares five ingredients before opening reactions. Each player passes or plays Customer Loyalty on their phone. Lactose Intolerant and Untrained Employee let the targeted player choose their own discard.
+- Tea Party: choose one or two tea cards, then their destination slots. Recycle: choose from the discard tray. Wild ingredients fit compatible recipes automatically and remain flexible.
+- Undo appends to the event stream. As in Pantheon, draws/reveals and ending a turn clear undo history. The host can undo the latest eligible move; a player can undo their own.
+- The tabletop displays played cards and hand counts. Hand faces appear only in the corresponding phone UI.
+
+## Architecture
+
+Svelte 5 / SvelteKit static frontend. Trusted clients run the same deterministic reducer over an immutable Firestore event stream. Moves apply optimistically without waiting for a write acknowledgement. Firestore is storage and synchronization only: there is **no game server, API polling, or Cloud Function**. Firebase Auth gives each browser a stable anonymous identity.
+
+The small room metadata document serializes appends, following Pantheon. Unique command IDs prevent duplicate replay, clients rebase concurrent intents, and Firestore rules enforce authorship and append-only history. Private hands are presentation privacy among trusted clients, not cryptographic secrecy. See [architecture notes](docs/architecture.md).
+
+GitHub Pages hosts production and PR previews. Both use the shared Firebase project `sabobatage-preview-anicolao`, with anonymous Authentication and Firestore. Open the [PR #2 tabletop](https://anicolao.github.io/sabobatage/pr2/table/) to create a room and scan the phone-join QR codes. See [deployment and backend setup](docs/deployment.md). Local emulators are for development.
+
+## Validation
 
 ```sh
+bun run test
+bun run test:backend # starts isolated emulators; stop dev emulators first
 bun run check
 bun run build
+bun run test:ux # uses installed Chrome, following the local browser setup
+SABOBATAGE_EMULATORS=1 bun run test:ux # also checks independent phones against running emulators
 ```
 
-## Scope
+Tests cover every action, recipe compatibility, reaction timing, flexible Wild ingredients, deterministic full-game simulations, replay/undo, optimistic acknowledgement and conflict handling, concurrent Firestore appends, identity and immutable history rules.
 
-All 27 illustrated base-game card types (110 physical cards), visible copy counts, category and text filters, enlarged card inspector, card backs, large-card mode, and browser-local art favorites. This is an unofficial art prototype, not a playable game or a transcription of every printed rule. All effects are now documented, with Lactose Intolerant and Recycle confirmed by the user from their cards. Verified action cards link to the publisher’s card images, manual, or tutorial.
+## Art and rules
 
-Reference project was found at `../games/pantheon` (the requested `../pantheon` did not exist). The project follows its SvelteKit static architecture, typed card data, reusable card faces with live text, searchable gallery, and native dialog inspector. No Pantheon source or art was copied.
+The launcher icon is served at `/art/sabobatage-launcher.png` (prefixed by `PUBLIC_BASE_PATH` when deployed under a subpath). Set the TTLauncher application's Icon field to the absolute HTTPS URL of this asset on the deployed Sabobatage host. SvelteKit copies `static/art/sabobatage-launcher.png` into the static build; no separate image host is needed. The square badge matches the Boba Mischief illustrations and follows Pantheon's launcher composition. Its built-in imagegen prompt is recorded in [launcher icon provenance](docs/launcher-icon.json).
 
-## Art
+Original boba-shop illustrations use two generated sprite sheets with live HTML rules text. The gallery retains the original 63:88 proportions, larger explanatory text, filters, favorites, card backs, and an inline detail panel.
 
-Original contact sheet generated with the built-in imagegen tool, saved at `static/art/boba-contact-sheet.png`. See `docs/art-direction.md` for the exact prompt. The companion `static/art/boba-inventory-sheet.png` adds the remaining 15 card illustrations. Cards use the sheets directly as a CSS atlas; names and rules remain accessible HTML. The illustration was generated as a 4 × 3 sheet; CSS crops each tile consistently. Fonts use Google Fonts, with local system fallbacks.
+The current third-edition manual (internally version 2.1) provides the inventory. User-confirmed card text supplies Lactose Intolerant and Recycle. See [rules references](docs/rules-reference.md) and [art direction](docs/art-direction.md). Pantheon and RoboRally informed the interaction and synchronization patterns.
 
-## Rules
-
-Use the current official third-edition download linked from https://sabobatage.com/pages/how-to-play (internally labelled version 2.1), rather than the 2021 manual. The newer deck adds Oat Milk and Recycle and changes tea/milk quantities. See the rules page and `docs/rules-reference.md` for sources and remaining questions.
