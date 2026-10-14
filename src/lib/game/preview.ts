@@ -11,6 +11,11 @@ export function previewSession(scenario:string,table:boolean,update:(view:View)=
  game.players[0].hand=['boba','straw','sabobatage','5-star-review','sugar-and-ice','tea-party','recycle'].map(take);
  for(const p of game.players.slice(1))p.hand=[take('customer-loyalty'),...inventory.splice(0,3)];
  game.discard=[take('health-inspector'),take('pudding'),take('lactose-intolerant')];game.deck=inventory;game.phase='play';game.plays=3;
+ if(scenario==='stolen-tea'||scenario==='stolen-tea-on-milk'){
+  // Like room 92AK6V: the first three drinks are complete.
+  game.players[0].drinks[0].cards.push(take('pudding'));
+  if(scenario==='stolen-tea-on-milk')game.players[0].drinks[3].cards.push(game.players[1].drinks[0].cards.pop()!);
+ }
  if(scenario==='overflow')game.players[0].hand.push(...game.deck.splice(0,7));
  if(scenario==='milk-choice'){
   game.active=1;game.players[1].hand.push(take('lactose-intolerant'));

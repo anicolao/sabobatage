@@ -150,3 +150,35 @@ test('opponent miniature replaces instructions and opens a drink without changin
  await expect(mini.getByRole('button',{name:'View Milk Moon drink 1',exact:true})).toBeVisible();
  await expect(page.locator('.counter-owner')).toContainText('Your counter');
 });
+
+
+test('stolen tea opens a compatible drink beyond the three completed drinks',async({page})=>{
+ await demo(page,'stolen-tea');await select(page,'Tea Party');
+ await page.getByRole('button',{name:'Taro & Co., 2 drinks, 4 private cards',exact:true}).click();
+ await ingredient(page,'Black Tea in Taro & Co. drink 1');
+ await ingredient(page,'Green Tea in Taro & Co. drink 2');
+ await page.getByRole('button',{name:'Use 2 teas →',exact:true}).click();
+ await expect(page.locator('.counter-drink.focused')).toHaveAttribute('data-drop-slot','3');
+ await expect(page.locator('.selection-ticket')).toContainText('Place Black Tea on your counter (1/2)');
+ // A full drink must not consume a destination or leave the selection stuck.
+ await page.getByRole('button',{name:'View drink 1, complete',exact:true}).click();
+ await ingredient(page,'Milk in Peach Please drink 1');
+ await expect(page.locator('.selection-count')).toHaveText('2 chosen');
+ await page.getByRole('button',{name:'View drink 4',exact:true}).click();
+ await page.locator('.counter-drink.focused').getByRole('button',{name:'Place here',exact:true}).click();
+ await expect(page.locator('.counter-drink.focused')).toHaveAttribute('data-drop-slot','4');
+ await expect(page.locator('.selection-ticket')).toContainText('Place Green Tea on your counter (2/2)');
+ await page.getByRole('button',{name:'Peach Please drink 5 empty slot',exact:true}).click();
+ await expect(page.locator('.action-receipt')).toContainText('2 ingredients chosen');
+ await expect(page.getByRole('button',{name:'Pass',exact:true})).toBeVisible();
+});
+
+test('Sugar and Ice can place tea by tapping an existing milk card',async({page})=>{
+ await demo(page,'stolen-tea-on-milk');await select(page,'Sugar and Ice');
+ await page.getByRole('button',{name:'Taro & Co., 2 drinks, 4 private cards',exact:true}).click();
+ await ingredient(page,'Black Tea in Taro & Co. drink 1');
+ await expect(page.locator('.counter-drink.focused')).toHaveAttribute('data-drop-slot','3');
+ await ingredient(page,'Milk in Peach Please drink 4');
+ await expect(page.locator('.action-receipt')).toContainText('Sugar and Ice');
+ await expect(page.getByRole('button',{name:'Pass',exact:true})).toBeVisible();
+});
