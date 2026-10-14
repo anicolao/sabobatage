@@ -1,0 +1,1 @@
+import"../chunks/dsq5IhR7.js";import"../chunks/xihTtKlq.js";import"../chunks/kjxD9KA9.js";import{t as e}from"../chunks/DTZs86oH.js";function t(t){e(t,{mode:`hand`})}export{t as component};
