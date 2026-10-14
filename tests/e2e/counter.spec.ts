@@ -131,3 +131,22 @@ test('two-player table uses the display width with large cards and separate seat
  await expect(page.locator('.near-hand,.fan-hit')).toHaveCount(0);
  await page.screenshot({path:info.outputPath('table-two-player.png')});
 });
+
+test('opponent miniature replaces instructions and opens a drink without changing the private hand',async({page},info)=>{
+ await demo(page,'two-player');
+ const mini=page.getByRole('region',{name:'Opponent counter'});
+ await expect(mini).toBeVisible();await expect(mini.locator('.mini-drinks>button')).toHaveCount(7);
+ await expect(page.locator('.action-receipt')).toHaveCount(0);
+ await expect(mini).toContainText('Taro & Co.');
+ const hand=await page.locator('.fan-hit').evaluateAll(els=>els.map(el=>el.getAttribute('data-piece')));
+ await mini.getByRole('button',{name:'View Taro & Co. drink 2, complete',exact:true}).click();
+ await expect(page.locator('.counter-owner')).toContainText('Taro & Co.');
+ await expect(page.getByRole('button',{name:'View drink 2, complete',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(await page.locator('.fan-hit').evaluateAll(els=>els.map(el=>el.getAttribute('data-piece')))).toEqual(hand);
+ await page.getByRole('button',{name:'Your counter ↩'}).click();
+ await page.screenshot({path:info.outputPath('opponent-miniature.png')});
+ await demo(page);
+ await page.getByRole('combobox',{name:'Opponent to preview'}).selectOption({label:'Milk Moon'});
+ await expect(mini.getByRole('button',{name:'View Milk Moon drink 1',exact:true})).toBeVisible();
+ await expect(page.locator('.counter-owner')).toContainText('Your counter');
+});

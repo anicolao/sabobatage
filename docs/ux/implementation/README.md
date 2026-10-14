@@ -14,6 +14,10 @@ Seven positions share one working counter. Shop coasters switch the counter owne
 
 The phone shows two face-up drinks using Pantheon's supply coverflow geometry. Swipe the counter, tap a folded drink, or use the seven numbered selectors to browse. Selecting a number only changes focus. Drag a hand card onto either face-up drink or tap the card and its destination. Pointer events support actual touch dragging; the viewport and hand do not scroll. Invalid or cancelled drags write no event. Dropping Boba offers its two inline bonus choices before committing the placement.
 
+The old instruction receipt is replaced by a miniature opponent counter: seven drink stacks, completion/protection marks, and a public hand count. Tap a drink to bring that opponent's counter into the main workspace. In larger games, the opponent selector changes the preview without replacing your own working counter. Routine turn status stays in the bottom rail; reaction and discard choices appear only when needed.
+
+![Opponent counter on a phone](opponent-miniature.png)
+
 The hand no longer has duplicate title labels over the artwork. Hold or right-click any card to zoom without selecting a move; a selected card also has an explicit Inspect button. The large portrait face and selectable rules occupy an inline reader, with Back or Escape returning to the prior selection.
 
 ![Phone card zoom at 393 × 852](phone-zoom.png)
