@@ -105,6 +105,10 @@ During play, phones issue player commands. Shared-table touches inspect public c
 
 ## 4. Cards, drinks, and inspection
 
+### Web multiplayer entry
+
+`/play/` offers two explicit paths: **Play online**, where a named host creates and joins a game in their own browser, and **Play around a table**, which opens the public tabletop. Online hosts share a `/play/?room=…` link or room code, see who has joined, and start once at least two players are present. Each online player uses the personal counter and private hand on their own device. Refresh restores the same identity and room. Neither online creation nor joining redirects to a tabletop or requires a separate phone.
+
 Each regular drink is a stack with exposed Tea, Flavor, and Topping header tabs. Taro drinks contain Taro and Milk/Oat Milk. Show the actual cards, not a substitute recipe illustration. Preserve identity as cards move between stacks. A Wild retains its own artwork and can show a small current-role label when useful; do not ask the player to commit an unnecessary permanent identity.
 
 An empty position is a subtle cup-shaped counter mark. Legal destinations gain a clear outline and text/icon cue when a card is selected. Incompatible positions remain inspectable and can explain “Needs a fruit-compatible topping”; they do not open alerts. Straw appears tucked against its completed drink. Bobasurance appears as a small policy card attached to its drink. Both can be inspected independently.

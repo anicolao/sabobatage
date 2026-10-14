@@ -1,10 +1,10 @@
 <script lang="ts">
  import { onMount } from 'svelte';
  import { base } from '$app/paths';
- import { goto, replaceState } from '$app/navigation';
+ import { afterNavigate, replaceState } from '$app/navigation';
  import QRCode from 'qrcode';
  import { connectFirebase } from '$lib/backend/firebase';
- import { createRoom } from '$lib/backend/repository';
+ import { createRoom, appendIntent, randomId } from '$lib/backend/repository';
  import { GameSession, firestoreTransport } from '$lib/backend/session';
  import CardFace from './CardFace.svelte';
  import DrinkCounter from './DrinkCounter.svelte';
@@ -15,6 +15,7 @@
  import { cards } from '$lib/game/cards';
  let { mode='lobby' }: {mode?:'lobby'|'table'|'hand'}=$props();
  let mounted=$state(false);
+ let joinCode=$state('');
  let room=$state(''), name=$state(''), view=$state<View|null>(null), error=$state(''), busy=$state(false), connected=$state(false);
  let focusPlayer=$state(''), focusSlot=$state(0), handPage=$state(0), inspecting=$state(false), journal=$state(false), upright=$state(false), placingTea=$state(false);
  let counter=$derived(view?.players.find(p=>p.id===(focusPlayer||view?.you))??view?.players[0]);
@@ -35,13 +36,14 @@
   if(busy)return;busy=true;error='';
   try{
    const services=await connectFirebase();if(disposed)return;
-   if(fresh||!room){const code=await createRoom(services.db,services.uid);if(disposed)return;room=code;view=null;localRevision=-1;replaceState(`${base}/table/?room=${room}`,{});}
+   if(fresh||!room){const playerName=name.trim()||me?.name||'';const code=await createRoom(services.db,services.uid);if(disposed)return;session?.stop();room=code;view=null;localRevision=-1;focusPlayer='';replaceState(`${base}/${mode==='table'?'table':'play'}/?room=${room}`,{});if(mode!=='table'&&playerName)await appendIntent(services.db,room,{id:randomId(),actorUid:services.uid,intent:{type:'player/joined',name:playerName}});}
    uid=services.uid;session?.stop();await updateQR();
    if(disposed)return;
    session=new GameSession(firestoreTransport(services.db,room),uid,mode==='table',state=>{accept(state.view);connected=state.connected;syncPending=state.pending;if(state.error)error=state.error;},localStorage,`sabobatage:events:v1:${room}:${uid}`);session.start();
   }catch(e){error=(e as Error).message;}finally{busy=false;}
  }
- async function create(){if(mode==='table')await connectTable(true);else await goto(`${base}/table/`);}
+ async function create(){await connectTable(true);}
+ async function enterWeb(){room=joinCode.trim().toUpperCase();replaceState(`${base}/play/?room=${room}`,{});await connectTable();}
  function join(){error='';try{session?.send({type:'player/joined',name});}catch(e){error=(e as Error).message;}}
  function command(cmd:Command|{type:'undo'}){cmd=$state.snapshot(cmd);if(!view||(!session&&!preview))return;error='';try{if(preview)preview.command(cmd);else if(cmd.type==='undo')session!.undo();else session!.send({type:'game/command',command:cmd});selected=null;targets=[];destinations=[];discarding=cmd.type==='discard'&&(view?.hand.length??0)>7;inspecting=false;showDiscard=false;placingTea=false;}catch(e){error=(e as Error).message;}}
  function cancel(){selected=null;targets=[];destinations=[];discarding=false;placingTea=false;bonus=null;pendingSlot=null;dragged=null;dropSlot=null;}
@@ -94,19 +96,28 @@
   return player!==view?.you&&(selected.type==='sugar-and-ice'||selected.type==='tea-party'&&definitions[c.type].category==='Tea');
  }
  function fit(slot:number){if(!selected||!me)return false;if(selected.type==='straw'||selected.type==='bobasurance')return !!me.drinks[slot].cards.length&&(selected.type!=='straw'||complete(me.drinks[slot]))&&!me.drinks[slot].protection.some(c=>c.type===selected?.type||c.type==='straw');const c=targets.length?view?.players.find(p=>p.id===targets[destinations.length]?.player)?.drinks[targets[destinations.length]?.slot]?.cards.find(c=>c.uid===targets[destinations.length]?.card):selected;if(!c)return false;const probe=me.drinks.map(d=>({cards:d.cards.map(c=>({...c})),protection:d.protection.map(c=>({...c}))}));destinations.forEach((dest,i)=>{const t=targets[i];const previous=view?.players.find(p=>p.id===t.player)?.drinks[t.slot]?.cards.find(c=>c.uid===t.card);if(dest>=0&&previous)probe[dest].cards.push(previous);});return canPlace(probe[slot],{...c,...(c.type==='wild-ingredient'?{as:wildAs}:{})});}
- async function updateQR(){if(!room||!address)return;joinUrl=`${location.protocol}//${address}${base}/hand/?room=${room}`;qr=await QRCode.toDataURL(joinUrl,{width:220,margin:2,color:{dark:'#583c32',light:'#fffaf0'}});}
+ async function updateQR(){if(!room||!address)return;joinUrl=`${location.protocol}//${address}${base}/${mode==='table'||mode==='hand'?'hand':'play'}/?room=${room}`;qr=await QRCode.toDataURL(joinUrl,{width:220,margin:2,color:{dark:'#583c32',light:'#fffaf0'}});}
  onMount(()=>{mounted=true;const params=new URLSearchParams(location.search);room=(params.get('room')??'').toUpperCase();address=location.host;void updateQR();
   if(import.meta.env.DEV&&params.has('demo')){room='DEMO';connected=true;void import('$lib/game/preview').then(({previewSession})=>{if(!disposed)preview=previewSession(params.get('demo')||'resting',mode==='table',accept);});return()=>{disposed=true;};}
 
-  if(mode==='table'||mode==='hand'&&room)void connectTable();
+  if(mode==='table'||room)void connectTable();
   return()=>{disposed=true;session?.stop();};
  });
+ afterNavigate(()=>{if(!mounted||mode!=='lobby')return;const next=(new URLSearchParams(location.search).get('room')??'').toUpperCase();if(next===room)return;session?.stop();room=next;view=null;localRevision=-1;focusPlayer='';if(room)void connectTable();});
 </script>
-<svelte:head><title>{mode==='table'?'Shared table':mode==='hand'?'Your hand':'Play'} · Sabobatage</title></svelte:head>
+<svelte:head><title>{mode==='table'?'Shared table':mode==='hand'?'Your hand':room?'Web game':'Play'} · Sabobatage</title></svelte:head>
 <svelte:window onkeydown={e=>{if(e.key==='Escape'){if(inspecting||showDiscard||journal){closeReader();}else cancel();}}}/>
 <main id="main" class="game-page" class:playing={!!view&&view.phase!=='lobby'} class:shared-table={mode==='table'} class:gathering-table={mode==='table'&&(!view||view.phase==='lobby')}>
- {#if mode==='lobby'}
-  <section class="game-welcome"><p class="eyebrow">OPEN YOUR BOBA SHOP</p><h1>One table.<br/><em>A few secret recipes.</em></h1><p>Gather 2–5 players. Keep the shared table on a big screen and your cards on your phone.</p><button class="primary-button" disabled={!mounted||busy} onclick={create}>Create a table ↗</button><form onsubmit={e=>{e.preventDefault();void goto(`${base}/hand/?room=${room.trim().toUpperCase()}`);}}><label>Room code<input aria-label="Room code" bind:value={room} maxlength="6" placeholder="ABC234" required/></label><button class="game-button" disabled={!mounted}>Join on this device</button></form><p class="small">Private hands, instant moves, and undo when someone makes a slip.</p></section>
+ {#if mode==='lobby'&&!room}
+  <section class="game-welcome"><p class="eyebrow">PLAY YOUR WAY · 2–5 PLAYERS</p><h1>A little boba.<br/><em>A little sabotage.</em></h1>
+   <div class="play-modes">
+    <section><h2>Play online</h2><p>Each player uses their own browser. Invite friends with a game link and keep your hand private.</p>
+     <form onsubmit={e=>{e.preventDefault();void create();}}><label>Your shop name<input aria-label="Your shop name" bind:value={name} maxlength="32" required placeholder="Peach Please"/></label><button class="primary-button" disabled={!mounted||busy||!name.trim()}>Create web game</button></form>
+     <form onsubmit={e=>{e.preventDefault();void enterWeb();}}><label>Room code<input aria-label="Room code" bind:value={joinCode} maxlength="6" placeholder="ABC234" required/></label><button class="game-button" disabled={!mounted||busy}>Join web game</button></form>
+    </section>
+    <section><h2>Play around a table</h2><p>Use a shared display for public cards and scan its QR codes to keep hands on phones.</p><a class="primary-button" href={`${base}/table/`}>Create tabletop game ↗</a></section>
+   </div>
+  </section>
  {:else if mode==='table'&&(!view||view.phase==='lobby')}
   <section class="table-gathering" aria-label="Tabletop setup">
    <div class="table-center table-lobby">
@@ -130,11 +141,11 @@
   </section>
  {:else if !room}<section class="game-welcome"><h1>Find your table</h1><a href={base + '/play/'} class="primary-button">Create or join a table</a></section>
  {:else}
-  {#if !view||view.phase==='lobby'}<header class="game-heading"><div><p class="eyebrow">{mode==='table'?'SHARED TABLE':'PRIVATE HAND'} · {room}</p><h1>{me?.name??'The boba shop'}</h1></div><span class:offline={!connected} class="connection">{syncPending?`◌ Syncing ${syncPending} move${syncPending===1?'':'s'}`:connected?'● Synced':'○ Connecting…'}</span><a href={base + '/play/'}>Other tables</a></header>{/if}
+  {#if !view||view.phase==='lobby'}<header class="game-heading"><div><p class="eyebrow">{mode==='table'?'SHARED TABLE':mode==='hand'?'PRIVATE HAND':'WEB GAME'} · {room}</p><h1>{me?.name??'The boba shop'}</h1></div><span class:offline={!connected} class="connection">{syncPending?`◌ Syncing ${syncPending} move${syncPending===1?'':'s'}`:connected?'● Synced':'○ Connecting…'}</span><a href={base + '/play/'}>Other tables</a></header>{/if}
   {#if view}
-   {#if mode==='hand'&&!me}<form class="join-shop" onsubmit={e=>{e.preventDefault();void join();}}><h2>Take a seat</h2><label>Your shop name<input aria-label="Your shop name" bind:value={name} maxlength="32" required placeholder="Peach Please"/></label><button class="primary-button" disabled={busy||view.phase!=='lobby'}>Join table</button>{#if view.phase!=='lobby'}<p>This game has started. Reopen it on the phone you used to join.</p>{/if}</form>{/if}
+   {#if mode!=='table'&&!me}<form class="join-shop" onsubmit={e=>{e.preventDefault();void join();}}><h2>Take a seat</h2><label>Your shop name<input aria-label="Your shop name" bind:value={name} maxlength="32" required placeholder="Peach Please"/></label><button class="primary-button" disabled={busy||view.phase!=='lobby'}>{mode==='lobby'?'Join game':'Join table'}</button>{#if view.phase!=='lobby'}<p>This game has started. Reopen it on the phone you used to join.</p>{/if}</form>{/if}
    {#if view.phase==='lobby'}
-    <section class="table-lobby"><div><p class="eyebrow">{view.players.length}/5 SHOPS OPEN</p><h2>Everyone brings<br/>their own secrets.</h2><ul>{#each view.players as p}<li>● {p.name}{p.id===view.you?' · you':''}</li>{/each}</ul>{#if !view.players.length}<p>Scan the code with each player’s phone to join.</p>{/if}{#if view.host}<label>Drinks to win<select bind:value={target}><option value={3}>3 · Quick game</option><option value={4}>4 drinks</option><option value={5}>5 · Full game</option></select></label><button class="primary-button" disabled={view.players.length<2||busy} onclick={()=>command({type:'start',target})}>Open the shops →</button>{:else}<p>Waiting for the host to open the shops.</p>{/if}</div>{#if mode==='table'}<div class="join-code">{#if qr}<img src={qr} alt={`Scan to join room ${room}`} width="220" height="220"/>{/if}<strong>{room}</strong><a href={joinUrl}>{joinUrl}</a><p>Scan to open your private hand.</p><label>Address for phones<input aria-label="Address for phones" bind:value={address} onchange={updateQR}/></label>{#if address.startsWith('127.')||address.startsWith('localhost')}<p>Use the Network address printed by the dev server so phones can reach this table.</p>{/if}<a href={`${base}/hand/?room=${room}`} target="_blank" rel="noreferrer">Open a hand on this device ↗</a></div>{/if}</section>
+    <section class="table-lobby" class:web-lobby={mode==='lobby'}><div><p class="eyebrow">{view.players.length}/5 SHOPS OPEN</p><h2>Everyone brings<br/>their own secrets.</h2><ul>{#each view.players as p}<li>● {p.name}{p.id===view.you?' · you':''}</li>{/each}</ul>{#if !view.players.length}<p>Scan the code with each player’s phone to join.</p>{/if}{#if view.host}<label>Drinks to win<select bind:value={target}><option value={3}>3 · Quick game</option><option value={4}>4 drinks</option><option value={5}>5 · Full game</option></select></label><button class="primary-button" disabled={view.players.length<2||busy} onclick={()=>command({type:'start',target})}>Open the shops →</button>{:else}<p>Waiting for the host to open the shops.</p>{/if}</div>{#if mode==='lobby'}<div class="web-invite"><h2>Invite your friends</h2><p>Share this link. Everyone plays in their own browser.</p><label>Game link<input aria-label="Game link" value={joinUrl} readonly onclick={e=>e.currentTarget.select()}/></label><a href={joinUrl}>{joinUrl}</a><p>Or join from Play with room code <strong>{room}</strong>.</p></div>{/if}{#if mode==='table'}<div class="join-code">{#if qr}<img src={qr} alt={`Scan to join room ${room}`} width="220" height="220"/>{/if}<strong>{room}</strong><a href={joinUrl}>{joinUrl}</a><p>Scan to open your private hand.</p><label>Address for phones<input aria-label="Address for phones" bind:value={address} onchange={updateQR}/></label>{#if address.startsWith('127.')||address.startsWith('localhost')}<p>Use the Network address printed by the dev server so phones can reach this table.</p>{/if}<a href={`${base}/hand/?room=${room}`} target="_blank" rel="noreferrer">Open a hand on this device ↗</a></div>{/if}</section>
    {:else}
     <div class="play-surface" class:public-surface={mode==='table'} class:dragging-card={!!dragged} data-players={view.players.length} class:upright style={`--seat-count:${view.players.length}`}>
      <header class="surface-top"><a href={base + '/play/'} class="table-wordmark">sa<b>boba</b>tage</a><span class="room-label">{room}</span><span class="sync-note" aria-live="polite">{!connected?'Reconnecting':syncPending?'Sending…':''}</span><button onclick={()=>{journal=!journal;showDiscard=false;inspecting=false;}} aria-pressed={journal}>Journal</button>{#if mode==='table'}<button onclick={()=>upright=!upright} aria-pressed={upright}>{upright?'Upright display':'Seated display'}</button>{/if}</header>

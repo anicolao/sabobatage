@@ -6,6 +6,8 @@ The gameplay UI now follows the reviewed [counter-based UX design](UX_DESIGN.md)
 
 ## Local play
 
+Open `/play/` to choose **Play online** or **Play around a table**. For online PvP, enter your shop name and choose **Create web game**, then share the invitation link or room code. The host plays from that same browser and starts once friends have joined; every browser shows only its own hand. No shared display or phones are required. `/table/` retains the public tabletop and QR phone-join flow.
+
 Use the pinned Nix shell for development and verification, as in Pantheon. It provides Bun, Node.js, Java, Git, GitHub CLI, Python, and ripgrep.
 
 ```sh
